@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, Zap } from "lucide-react";
 import { ExtractionTimeline, type ExtractionStep } from "@/components/pipeline/extraction-timeline";
@@ -73,29 +73,28 @@ export default function ExtractionPage() {
     }
   }, [events]);
 
-  const startExtraction = useCallback(async () => {
-    if (running) return;
-    setRunning(true);
-    const urls = selectedInspirations.map((i) => i.url).filter(Boolean);
-    try {
-      const res = await fetch("/api/pipeline/clone", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ runId, urls }),
-      });
-      const data = await res.json();
-      if (data.merged) setMerged(data.merged);
-      setDone(true);
-    } catch { /* handled by SSE */ }
-    setRunning(false);
-  }, [running, selectedInspirations, runId]);
+  const startedRef = useRef(false);
 
-  // Lancement automatique
+  // Lancement automatique — une seule fois
   useEffect(() => {
-    if (selectedInspirations.length > 0 && !running && !done && steps.length === 0) {
-      startExtraction();
-    }
-  }, [selectedInspirations, running, done, steps.length, startExtraction]);
+    if (startedRef.current || running || done || selectedInspirations.length === 0) return;
+    startedRef.current = true;
+    setRunning(true);
+
+    const urls = selectedInspirations.map((i) => i.url).filter(Boolean);
+    fetch("/api/pipeline/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ runId, urls }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.merged) setMerged(data.merged);
+        setDone(true);
+      })
+      .catch(() => {})
+      .finally(() => setRunning(false));
+  }, [selectedInspirations, runId, running, done]);
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">

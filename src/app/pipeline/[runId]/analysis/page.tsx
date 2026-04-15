@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, Brain } from "lucide-react";
 import { PersonaPanel } from "@/components/pipeline/persona-panel";
@@ -58,31 +58,29 @@ export default function AnalysisPage() {
     }
   }, [events]);
 
-  const startAnalysis = useCallback(async () => {
-    if (loading || !brief || !brand || !run?.mergedTokens) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/pipeline/analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          brief,
-          brand,
-          tokens: run.mergedTokens,
-          inspirationsCount: selectedInspirations.length,
-        }),
-      });
-      const data = await res.json();
-      setResults(data);
-      setDone(true);
-    } catch { /* handled */ }
-    setLoading(false);
-  }, [loading, brief, brand, run, runId, selectedInspirations.length]);
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (!done && !loading) startAnalysis();
-  }, [done, loading, startAnalysis]);
+    if (startedRef.current || loading || done || !brief || !brand || !run?.mergedTokens) return;
+    startedRef.current = true;
+    setLoading(true);
+
+    fetch("/api/pipeline/analysis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        runId,
+        brief,
+        brand,
+        tokens: run.mergedTokens,
+        inspirationsCount: selectedInspirations.length,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => { setResults(data); setDone(true); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [brief, brand, run, runId, selectedInspirations.length, loading, done]);
 
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">

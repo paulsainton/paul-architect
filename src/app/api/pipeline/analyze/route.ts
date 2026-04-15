@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scanProject } from "@/lib/project-analyzer";
-import { getRun, emitSSE, setTunnelStatus, updateRun } from "@/lib/pipeline-state";
+import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import { existsSync } from "fs";
 
+function resolveProjectPath(slug: string): string | null {
+  // Essayer dans l'ordre : /opt/{slug} exact, puis chercher un match partiel
+  const direct = `/opt/${slug}`;
+  if (existsSync(direct)) return direct;
+  // Mappings courants (slug != dossier)
+  const aliases: Record<string, string> = {
+    miam: "/opt/dietplus",
+    "ecom-dropship": "/opt/ecom-mygong",
+    matthias: "/opt/matthias-website",
+  };
+  if (aliases[slug] && existsSync(aliases[slug])) return aliases[slug];
+  return null;
+}
+
 export async function POST(request: NextRequest) {
-  const { runId, projectPath } = await request.json();
+  const { runId, projectPath: explicitPath } = await request.json();
 
   const run = getRun(runId);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
-  if (!projectPath || !existsSync(projectPath)) {
-    return NextResponse.json({ error: "Invalid project path" }, { status: 400 });
+
+  // Résoudre le path : explicite > auto depuis slug
+  const projectPath = explicitPath && existsSync(explicitPath) ? explicitPath : resolveProjectPath(run.projectSlug);
+  if (!projectPath) {
+    return NextResponse.json({ error: `Project path not found for "${run.projectSlug}"` }, { status: 400 });
   }
 
   setTunnelStatus(runId, 1, "active");

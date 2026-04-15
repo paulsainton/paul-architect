@@ -27,7 +27,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({ label,
 ));
 Textarea.displayName = "Textarea";
 
-interface SelectProps extends InputHTMLAttributes<HTMLSelectElement> {
+import type { SelectHTMLAttributes } from "react";
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   options: { value: string; label: string }[];
 }
@@ -35,7 +37,7 @@ interface SelectProps extends InputHTMLAttributes<HTMLSelectElement> {
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, options, className = "", ...props }, ref) => (
   <label className="block">
     {label && <span className="block text-xs text-text-secondary mb-1.5">{label}</span>}
-    <select ref={ref} className={`${baseClasses} ${className}`} {...(props as Record<string, unknown>)}>
+    <select ref={ref} className={`${baseClasses} ${className}`} {...props}>
       {options.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}

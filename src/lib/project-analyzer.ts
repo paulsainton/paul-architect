@@ -78,6 +78,8 @@ export function scanProject(projectPath: string): ProjectScan {
     for (const f of files) {
       if (/page\.(tsx?|jsx?)$/.test(f)) {
         const rel = relative(appDir, f).replace(/\/page\.\w+$/, "").replace(/\\/g, "/");
+        // Filtrer les faux positifs : fichier racine = "home", pas "page.tsx"
+        if (rel.endsWith("page.tsx") || rel.endsWith("page.ts")) continue;
         pages.push(rel || "home");
       }
     }
@@ -94,13 +96,15 @@ export function scanProject(projectPath: string): ProjectScan {
     }
   }
 
-  // 5. CSS tokens
+  // 5. CSS tokens (une seule ligne par token, pas de multi-ligne)
   const tokens: Record<string, string> = {};
   const cssPath = join(projectPath, "src", "app", "globals.css");
   const css = safeRead(cssPath);
-  const colorMatches = css.matchAll(/--color-([^:]+):\s*([^;]+)/g);
-  for (const m of colorMatches) {
-    tokens[m[1]] = m[2].trim();
+  for (const line of css.split("\n")) {
+    const m = line.match(/--color-([a-zA-Z0-9-]+):\s*([^;}{]+);/);
+    if (m && m[2].trim().length < 50) {
+      tokens[m[1]] = m[2].trim();
+    }
   }
 
   // 6. Features from CLAUDE.md

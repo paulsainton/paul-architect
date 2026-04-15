@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Loader2, Rocket, ArrowLeft, CheckCircle } from "lucide-react";
 import { ScoreCard } from "@/components/pipeline/score-card";
@@ -18,30 +18,23 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(false);
   const [deployed, setDeployed] = useState(false);
 
-  const runReview = useCallback(async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/pipeline/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          pagesValidated: 0,
-          totalPages: 1,
-          maquettesApproved: 0,
-          totalMaquettes: 1,
-        }),
-      });
-      const data = await res.json();
-      setScore(data);
-    } catch { /* handled */ }
-    setLoading(false);
-  }, [loading, runId]);
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (!score && !loading) runReview();
-  }, [score, loading, runReview]);
+    if (startedRef.current || loading || score) return;
+    startedRef.current = true;
+    setLoading(true);
+
+    fetch("/api/pipeline/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ runId, pagesValidated: 0, totalPages: 1, maquettesApproved: 0, totalMaquettes: 1 }),
+    })
+      .then((r) => r.json())
+      .then((data) => setScore(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [runId, loading, score]);
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">

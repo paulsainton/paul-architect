@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, Image as ImageIcon } from "lucide-react";
 import { MaquetteComparison } from "@/components/pipeline/maquette-comparison";
@@ -30,8 +30,11 @@ export default function MaquettesPage() {
   const [done, setDone] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const generate = useCallback(async () => {
-    if (loading || !brief || !brand || selectedInspirations.length === 0) return;
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current || loading || done || !brief || !brand || selectedInspirations.length === 0) return;
+    startedRef.current = true;
     setLoading(true);
 
     // Init state
@@ -43,41 +46,28 @@ export default function MaquettesPage() {
       }))
     );
 
-    try {
-      const res = await fetch("/api/pipeline/stitch-maquettes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          inspirations: selectedInspirations,
-          brief,
-          brand,
-        }),
-      });
-      const data = await res.json();
-
-      setMaquettes((prev) =>
-        prev.map((m) => {
-          const result = data.find((d: { refUrl: string }) => d.refUrl === m.refUrl);
-          if (result) {
-            return {
-              ...m,
-              maquetteImage: result.imageUrl,
-              stitchProjectId: result.stitchProjectId,
-              status: result.status === "success" ? "ready" as const : "fallback" as const,
-            };
-          }
-          return { ...m, status: "fallback" as const };
-        })
-      );
-      setDone(true);
-    } catch { /* handled */ }
-    setLoading(false);
-  }, [loading, brief, brand, selectedInspirations, runId]);
-
-  useEffect(() => {
-    if (!done && !loading && maquettes.length === 0) generate();
-  }, [done, loading, maquettes.length, generate]);
+    fetch("/api/pipeline/stitch-maquettes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ runId, inspirations: selectedInspirations, brief, brand }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setMaquettes((prev) =>
+          prev.map((m) => {
+            const result = data.find((d: { refUrl: string }) => d.refUrl === m.refUrl);
+            if (result) {
+              return { ...m, maquetteImage: result.imageUrl, stitchProjectId: result.stitchProjectId,
+                status: result.status === "success" ? "ready" as const : "fallback" as const };
+            }
+            return { ...m, status: "fallback" as const };
+          })
+        );
+        setDone(true);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [brief, brand, selectedInspirations, runId, loading, done]);
 
   const approved = maquettes.filter((m) => m.status === "approved").length;
   const total = maquettes.length;

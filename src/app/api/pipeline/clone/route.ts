@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     fonts: merged.fonts.length,
   });
 
-  updateRun(runId, { mergedTokens: merged } as Record<string, unknown>);
+  updateRun(runId, { mergedTokens: merged });
   setTunnelStatus(runId, 3, "completed");
   setTunnelStatus(runId, 4, "active");
 

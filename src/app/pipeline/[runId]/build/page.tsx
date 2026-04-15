@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, Code } from "lucide-react";
 import { BuildTimeline, type PageBuildState } from "@/components/pipeline/build-timeline";
@@ -57,36 +57,32 @@ export default function BuildPage() {
     }
   }, [events]);
 
-  const startBuild = useCallback(async () => {
-    if (loading || !brief || !brand) return;
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current || loading || done || !brief || !brand) return;
+    startedRef.current = true;
     setLoading(true);
 
     const targetPages = brief.detected.pages.length > 0 ? brief.detected.pages : ["home"];
 
-    try {
-      const res = await fetch("/api/pipeline/generate-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          context: {
-            brief,
-            brand,
-            tokens: run?.mergedTokens || { colors: [], fonts: [], spacing: [], shadows: [], borderRadius: [] },
-            analysis: [],
-            pages: targetPages,
-          },
-        }),
-      });
-      await res.json();
-      setDone(true);
-    } catch { /* handled by SSE */ }
-    setLoading(false);
-  }, [loading, brief, brand, run, runId]);
-
-  useEffect(() => {
-    if (!done && !loading && pages.length === 0) startBuild();
-  }, [done, loading, pages.length, startBuild]);
+    fetch("/api/pipeline/generate-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        runId,
+        context: {
+          brief, brand,
+          tokens: run?.mergedTokens || { colors: [], fonts: [], spacing: [], shadows: [], borderRadius: [] },
+          analysis: [], pages: targetPages,
+        },
+      }),
+    })
+      .then((r) => r.json())
+      .then(() => setDone(true))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [brief, brand, run, runId, loading, done]);
 
   const validated = pages.filter((p) => p.status === "validated").length;
 

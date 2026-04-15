@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, Palette } from "lucide-react";
 import { BrandOptionCard } from "@/components/pipeline/brand-option";
@@ -21,29 +21,24 @@ export default function BrandPage() {
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | "C" | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const startedRef = useRef(false);
 
-  const generate = useCallback(async () => {
-    if (loading || !brief || !run?.mergedTokens) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/pipeline/brand", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          tokens: run.mergedTokens,
-          brief,
-        }),
-      });
-      const data = await res.json();
-      setOptions(data);
-    } catch { /* handled */ }
-    setLoading(false);
-  }, [loading, brief, run, runId]);
-
+  // Génération automatique — une seule fois
   useEffect(() => {
-    if (options.length === 0 && !loading) generate();
-  }, [options.length, loading, generate]);
+    if (startedRef.current || loading || options.length > 0 || !brief || !run?.mergedTokens) return;
+    startedRef.current = true;
+    setLoading(true);
+
+    fetch("/api/pipeline/brand", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ runId, tokens: run.mergedTokens, brief }),
+    })
+      .then((r) => r.json())
+      .then((data) => setOptions(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [brief, run, runId, loading, options.length]);
 
   async function handleValidate() {
     if (!selectedOption) return;
