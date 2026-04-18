@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { BenchFilters } from "./bench-filters";
 import { InspirationCard } from "./inspiration-card";
+import { InspirationDetailModal } from "./inspiration-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Inspiration } from "@/types/pipeline";
 
@@ -15,20 +16,27 @@ interface Filters {
   search: string;
 }
 
+interface ExtendedInspiration extends Inspiration {
+  contentFormat?: string;
+  detectedTools?: string[];
+  detectedWebsites?: string[];
+  density?: string;
+}
+
 interface Props {
   selected: Inspiration[];
   maxSelection: number;
   onToggle: (item: Inspiration) => void;
-  onZoom: (imageUrl: string) => void;
   defaultSector?: string;
 }
 
-export function BenchExplorer({ selected, maxSelection, onToggle, onZoom, defaultSector }: Props) {
+export function BenchExplorer({ selected, maxSelection, onToggle, defaultSector }: Props) {
   const [filters, setFilters] = useState<Filters>({
     category: "", subcategory: "", sector: defaultSector || "", style: "", device: "", search: "",
   });
-  const [items, setItems] = useState<Inspiration[]>([]);
+  const [items, setItems] = useState<ExtendedInspiration[]>([]);
   const [loading, setLoading] = useState(false);
+  const [detailItem, setDetailItem] = useState<ExtendedInspiration | null>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -67,7 +75,7 @@ export function BenchExplorer({ selected, maxSelection, onToggle, onZoom, defaul
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-72" />
+            <Skeleton key={i} className="aspect-square" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -91,11 +99,17 @@ export function BenchExplorer({ selected, maxSelection, onToggle, onZoom, defaul
                 if (!selectedIds.has(item.id) && !canSelect) return;
                 onToggle(item);
               }}
-              onZoom={onZoom}
+              onOpenDetail={() => setDetailItem(item)}
             />
           ))}
         </div>
       )}
+
+      <InspirationDetailModal
+        open={!!detailItem}
+        onClose={() => setDetailItem(null)}
+        item={detailItem}
+      />
     </div>
   );
 }

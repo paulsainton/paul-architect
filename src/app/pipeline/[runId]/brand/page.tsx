@@ -21,9 +21,22 @@ export default function BrandPage() {
   const router = useRouter();
   const runId = params.runId as string;
   const brief = usePipelineStore((s) => s.brief);
+  const setBrief = usePipelineStore((s) => s.setBrief);
   const setBrand = usePipelineStore((s) => s.setBrand);
   const run = usePipelineStore((s) => s.run);
   const events = usePipelineStore((s) => s.events);
+
+  // Si pas de brief en m\u00e9moire, recharger le run pour avoir brief.project.slug et relancer audit
+  useEffect(() => {
+    if (brief || !runId) return;
+    // Fetch run state
+    fetch(`/api/pipeline/run?id=${runId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.brief) setBrief(data.brief);
+      })
+      .catch(() => {});
+  }, [brief, runId, setBrief]);
 
   const [options, setOptions] = useState<BrandOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | "C" | null>(null);
@@ -67,18 +80,32 @@ export default function BrandPage() {
   }, [events]);
 
   // G\u00e9n\u00e9ration automatique — une seule fois
+  // Important : T4 doit marcher m\u00eame sans T3 (Clone pass\u00e9) — fallback tokens vides
   useEffect(() => {
-    if (startedRef.current || loading || options.length > 0 || !brief || !run?.mergedTokens) return;
+    if (startedRef.current || loading || options.length > 0 || !brief) return;
     startedRef.current = true;
     setLoading(true);
+
+    // Si pas de mergedTokens (T3 pas encore fait), utiliser les tokens du scan initial
+    const tokens = run?.mergedTokens || {
+      colors: Object.entries(brief.detected.tokens || {})
+        .filter(([, v]) => typeof v === "string" && (v as string).startsWith("#"))
+        .map(([k, v]) => ({ hex: v as string, frequency: 1, source: k })),
+      fonts: [],
+      spacing: [],
+      shadows: [],
+      borderRadius: [],
+    };
 
     fetch("/api/pipeline/brand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ runId, tokens: run.mergedTokens, brief }),
+      body: JSON.stringify({ runId, tokens, brief }),
     })
       .then((r) => r.json())
-      .then((data) => setOptions(data))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) setOptions(data);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [brief, run, runId, loading, options.length]);

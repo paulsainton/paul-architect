@@ -24,6 +24,10 @@ interface PipelineStore {
 
   brand: Brand | null;
   setBrand: (brand: Brand) => void;
+
+  // Audit complet (stock\u00e9 pour alimenter les tunnels suivants)
+  audit: { knownCompetitors: string[]; suggestedKeywords: string[] } | null;
+  setAudit: (audit: { knownCompetitors: string[]; suggestedKeywords: string[] }) => void;
 }
 
 export const usePipelineStore = create<PipelineStore>((set, get) => ({
@@ -78,4 +82,7 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
 
   brand: null,
   setBrand: (brand) => set({ brand }),
+
+  audit: null,
+  setAudit: (audit) => set({ audit }),
 }));

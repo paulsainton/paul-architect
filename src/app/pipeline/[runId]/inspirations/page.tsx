@@ -19,6 +19,7 @@ export default function InspirationsPage() {
   const runId = params.runId as string;
   const run = usePipelineStore((s) => s.run);
   const brief = usePipelineStore((s) => s.brief);
+  const audit = usePipelineStore((s) => s.audit);
   const selectedInspirations = usePipelineStore((s) => s.selectedInspirations);
   const toggleInspiration = usePipelineStore((s) => s.toggleInspiration);
 
@@ -39,6 +40,8 @@ export default function InspirationsPage() {
         sector: brief.project.sector,
         type: brief.project.type,
         projectName: brief.project.name,
+        knownCompetitors: audit?.knownCompetitors || [],
+        keywords: audit?.suggestedKeywords || [],
       }),
     })
       .then((r) => r.json())
@@ -128,7 +131,6 @@ export default function InspirationsPage() {
               selected={selectedInspirations}
               maxSelection={5}
               onToggle={toggleInspiration}
-              onZoom={setPreviewUrl}
               defaultSector={brief?.project.sector}
             />
           )

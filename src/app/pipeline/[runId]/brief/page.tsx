@@ -22,6 +22,7 @@ export default function BriefPage() {
   const runId = params.runId as string;
   const run = usePipelineStore((s) => s.run);
   const setBrief = usePipelineStore((s) => s.setBrief);
+  const setAuditStore = usePipelineStore((s) => s.setAudit);
   const events = usePipelineStore((s) => s.events);
 
   const [audit, setAudit] = useState<AuditedBrief | null>(null);
@@ -49,6 +50,10 @@ export default function BriefPage() {
           return;
         }
         setAudit(data);
+        setAuditStore({
+          knownCompetitors: data.knownCompetitors || [],
+          suggestedKeywords: data.suggestedKeywords || [],
+        });
         setScanning(false);
       })
       .catch(() => setScanning(false));
