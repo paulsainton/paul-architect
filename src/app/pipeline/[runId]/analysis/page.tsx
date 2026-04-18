@@ -92,7 +92,16 @@ export default function AnalysisPage() {
       }),
     })
       .then((r) => r.json())
-      .then((data) => { setResults(data); setDone(true); })
+      .then((data) => {
+        setResults(data);
+        setDone(true);
+        // PERSIST : sauvegarder analyse dans run state pour T7/T6
+        fetch("/api/pipeline/run", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ runId, analysis: data, skipTunnelAdvance: true }),
+        }).catch(() => {});
+      })
       .catch((err) => console.error("[analysis] error:", err))
       .finally(() => setLoading(false));
   }, [brief, brand, run, runId, selectedInspirations.length, loading, done]);

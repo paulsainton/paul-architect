@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRun, getAllRuns, getRun, updateRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
+import { checkRateLimit, getClientKey, getResetSeconds } from "@/lib/rate-limit";
+
+const RUN_LIMIT = 20;         // 20 runs cr\u00e9\u00e9s
+const RUN_WINDOW_MS = 60_000; // par minute
 
 export async function POST(request: NextRequest) {
+  const key = getClientKey(request, "run");
+  if (!checkRateLimit(key, RUN_LIMIT, RUN_WINDOW_MS)) {
+    const reset = getResetSeconds(key, RUN_WINDOW_MS);
+    return NextResponse.json(
+      { error: `Trop de runs cr\u00e9\u00e9s. R\u00e9essayez dans ${reset}s.` },
+      { status: 429, headers: { "Retry-After": String(reset) } }
+    );
+  }
   const { projectSlug } = await request.json();
   if (!projectSlug) {
     return NextResponse.json({ error: "projectSlug required" }, { status: 400 });

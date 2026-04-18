@@ -36,6 +36,7 @@ export default function MaquettesPage() {
   const setBrief = usePipelineStore((s) => s.setBrief);
   const brand = usePipelineStore((s) => s.brand);
   const setBrand = usePipelineStore((s) => s.setBrand);
+  const run = usePipelineStore((s) => s.run);
   const selectedInspirations = usePipelineStore((s) => s.selectedInspirations);
   const setSelectedInspirations = usePipelineStore((s) => s.setSelectedInspirations);
 
@@ -95,13 +96,19 @@ export default function MaquettesPage() {
       const styles = (insp.visualStyles || []).slice(0, 3).join(", ");
       const features = (insp.keyFeatures || []).slice(0, 3).join(", ");
 
+      // Inclure recommandations T5 si dispo (via analysis persistée)
+      const analysisRecs = (run as unknown as { analysis?: Array<{ name: string; recommendations: string[] }> })?.analysis;
+      const analysisBlock = analysisRecs && analysisRecs.length > 0
+        ? `\nRecommandations analyse multi-persona :\n${analysisRecs.slice(0, 4).map((p) => `- ${p.name} : ${p.recommendations.slice(0, 2).join(" ; ")}`).join("\n")}`
+        : "";
+
       const prompt = `${brief.project.name} \u2014 1 page ${brief.paul.device === "mobile" ? "mobile" : "desktop"}, inspir\u00e9e de ${insp.url} (${insp.title}).
 Secteur : ${brief.project.sector}. Audience : ${brief.paul.audience.slice(0, 200)}.
 Styles visuels de la r\u00e9f\u00e9rence : ${styles || "moderne"}. Color scheme : ${insp.colorScheme || "light"}.
 Features inspirantes : ${features || brief.paul.priorities.slice(0, 3).join(", ")}.
 Palette STRICT : primary ${effectiveBrand.palette.primary}, secondary ${effectiveBrand.palette.secondary}, accent ${effectiveBrand.palette.accent}, background ${effectiveBrand.palette.background}, text ${effectiveBrand.palette.text}.
 Typography : heading ${effectiveBrand.typography.heading}, body ${effectiveBrand.typography.body}.
-Mood : ${brief.paul.mood}.
+Mood : ${brief.paul.mood}.${analysisBlock}
 Produis UNE page complete (hero + sections) qui reprend la structure layout de ${insp.url}.`;
 
       fetch("/api/pipeline/stitch-instant", {

@@ -22,6 +22,7 @@ export interface PipelineRun {
   inspirations?: Inspiration[];
   mergedTokens?: MergedTokens;
   brand?: Brand;
+  analysis?: PersonaAnalysis[];
   createdAt: string;
   updatedAt: string;
 }

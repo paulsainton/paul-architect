@@ -3,6 +3,9 @@ import { writeFile, readFile, readdir, mkdir, rename, unlink } from "fs/promises
 import { existsSync } from "fs";
 import { join } from "path";
 import { CONFIG } from "./config";
+import { log } from "./logger";
+
+const logger = log.scope("pipeline-state");
 
 type SSEClient = {
   controller: ReadableStreamDefaultController;
@@ -41,7 +44,7 @@ async function persistRun(runId: string): Promise<void> {
     await writeFile(tmp, JSON.stringify(run), "utf-8");
     await rename(tmp, path);
   } catch (err) {
-    console.error("[pipeline-state] persist fail:", err);
+    logger.error("persist fail", { error: err, runId });
   }
 }
 
@@ -71,9 +74,9 @@ async function hydrate(): Promise<void> {
         }
       } catch { /* skip corrupt */ }
     }
-    console.log(`[pipeline-state] hydrated ${runs.size} runs from disk`);
+    logger.info("hydrated from disk", { count: runs.size });
   } catch (err) {
-    console.error("[pipeline-state] hydrate fail:", err);
+    logger.error("hydrate fail", { error: err });
   }
 }
 hydrate();
