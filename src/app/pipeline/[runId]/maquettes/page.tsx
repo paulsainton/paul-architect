@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { MaquetteComparison } from "@/components/pipeline/maquette-comparison";
+import { StitchProjectCard } from "@/components/pipeline/stitch-project-card";
 import { PreviewModal } from "@/components/pipeline/preview-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,8 @@ interface MaquetteState {
   refDomain: string;
   maquetteImage?: string;
   stitchProjectId?: string;
+  stitchProjectSlug?: string;
+  stitchRunId?: string;
   stitchDashboardUrl?: string;
   message?: string;
   status: "generating" | "ready" | "approved" | "rejected" | "fallback";
@@ -92,7 +95,9 @@ export default function MaquettesPage() {
               return {
                 ...m,
                 maquetteImage: result.imageUrl,
-                stitchProjectId: result.stitchProjectId,
+                stitchProjectId: result.stitchProjectId || result.stitchProjectSlug,
+                stitchProjectSlug: result.stitchProjectSlug,
+                stitchRunId: result.stitchRunId,
                 stitchDashboardUrl: result.stitchDashboardUrl,
                 message: result.message,
                 status: result.status === "success" ? "ready" as const : "fallback" as const,
@@ -125,8 +130,28 @@ export default function MaquettesPage() {
       </div>
 
       <p className="text-sm text-text-muted mb-6">
-        1 maquette par inspiration, g&eacute;n&eacute;r&eacute;e par Stitch SDK et inspir&eacute;e &agrave; 100% de sa source.
+        1 projet Stitch par inspiration, avec prompt unique bas&eacute; sur les tokens &amp; layout extraits.
       </p>
+
+      {/* Dashboard Stitch inline : projets + screens en temps r\u00e9el */}
+      {maquettes.some((m) => m.stitchProjectSlug) && (
+        <div className="mb-8">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-tunnel-7" />
+            Projets Stitch actifs
+          </h3>
+          {maquettes
+            .filter((m) => m.stitchProjectSlug)
+            .map((m) => (
+              <StitchProjectCard
+                key={m.stitchProjectSlug}
+                slug={m.stitchProjectSlug as string}
+                stitchRunId={m.stitchRunId}
+                refDomain={m.refDomain}
+              />
+            ))}
+        </div>
+      )}
 
       {maquettes.map((m) => (
         <MaquetteComparison
