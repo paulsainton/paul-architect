@@ -15,7 +15,20 @@ export default function ExtractionPage() {
   const router = useRouter();
   const runId = params.runId as string;
   const selectedInspirations = usePipelineStore((s) => s.selectedInspirations);
+  const setSelectedInspirations = usePipelineStore((s) => s.setSelectedInspirations);
   const events = usePipelineStore((s) => s.events);
+
+  // HYDRATATION : r\u00e9cup\u00e9rer les inspirations d\u00e9j\u00e0 s\u00e9lectionn\u00e9es si store vide (reload)
+  useEffect(() => {
+    if (!runId || selectedInspirations.length > 0) return;
+    fetch(`/api/pipeline/run?id=${runId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.inspirations?.length > 0) setSelectedInspirations(data.inspirations);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
 
   const [steps, setSteps] = useState<ExtractionStep[]>([]);
   const [merged, setMerged] = useState<MergedTokens | null>(null);

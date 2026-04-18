@@ -19,14 +19,44 @@ export default function InspirationsPage() {
   const runId = params.runId as string;
   const run = usePipelineStore((s) => s.run);
   const brief = usePipelineStore((s) => s.brief);
+  const setBrief = usePipelineStore((s) => s.setBrief);
   const audit = usePipelineStore((s) => s.audit);
   const selectedInspirations = usePipelineStore((s) => s.selectedInspirations);
   const toggleInspiration = usePipelineStore((s) => s.toggleInspiration);
+  const setSelectedInspirations = usePipelineStore((s) => s.setSelectedInspirations);
 
   const [competitors, setCompetitors] = useState<CompetitorResult[]>([]);
   const [loadingComp, setLoadingComp] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // HYDRATATION au mount : r\u00e9cup\u00e9rer brief + inspirations d\u00e9j\u00e0 s\u00e9lectionn\u00e9es depuis run state
+  useEffect(() => {
+    if (!runId) return;
+    fetch(`/api/pipeline/run?id=${runId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.brief && !brief) setBrief(data.brief);
+        if (data?.inspirations?.length > 0 && selectedInspirations.length === 0) {
+          setSelectedInspirations(data.inspirations);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
+  // AUTO-PERSIST : sauvegarder les inspirations d\u00e8s qu'elles changent (debounced)
+  useEffect(() => {
+    if (!runId || selectedInspirations.length === 0) return;
+    const t = setTimeout(() => {
+      fetch("/api/pipeline/run", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId, inspirations: selectedInspirations, skipTunnelAdvance: true }),
+      }).catch(() => {});
+    }, 500);
+    return () => clearTimeout(t);
+  }, [selectedInspirations, runId]);
 
   // Lancer le scraping concurrents automatiquement
   useEffect(() => {

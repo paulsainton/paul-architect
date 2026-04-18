@@ -22,24 +22,26 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const { runId, ...updates } = body;
+  const { runId, skipTunnelAdvance, ...updates } = body;
   if (!runId) return NextResponse.json({ error: "runId required" }, { status: 400 });
 
-  // Si on sauvegarde un brief, marquer T1 completed et T2 active
-  if (updates.brief) {
-    setTunnelStatus(runId, 1, "completed");
-    setTunnelStatus(runId, 2, "active");
-    emitSSE(runId, "brief:validated", { brief: updates.brief });
-  }
-  if (updates.inspirations) {
-    setTunnelStatus(runId, 2, "completed");
-    setTunnelStatus(runId, 3, "active");
-    emitSSE(runId, "inspirations:validated", { total: updates.inspirations.length });
-  }
-  if (updates.brand) {
-    setTunnelStatus(runId, 4, "completed");
-    setTunnelStatus(runId, 5, "active");
-    emitSSE(runId, "brand:validated", { brand: updates.brand });
+  // skipTunnelAdvance = auto-save pendant l'\u00e9dition, ne pas avancer le statut des tunnels
+  if (!skipTunnelAdvance) {
+    if (updates.brief) {
+      setTunnelStatus(runId, 1, "completed");
+      setTunnelStatus(runId, 2, "active");
+      emitSSE(runId, "brief:validated", { brief: updates.brief });
+    }
+    if (updates.inspirations) {
+      setTunnelStatus(runId, 2, "completed");
+      setTunnelStatus(runId, 3, "active");
+      emitSSE(runId, "inspirations:validated", { total: updates.inspirations.length });
+    }
+    if (updates.brand) {
+      setTunnelStatus(runId, 4, "completed");
+      setTunnelStatus(runId, 5, "active");
+      emitSSE(runId, "brand:validated", { brand: updates.brand });
+    }
   }
 
   const run = updateRun(runId, updates);

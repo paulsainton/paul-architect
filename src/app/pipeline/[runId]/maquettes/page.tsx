@@ -24,8 +24,11 @@ export default function MaquettesPage() {
   const router = useRouter();
   const runId = params.runId as string;
   const brief = usePipelineStore((s) => s.brief);
+  const setBrief = usePipelineStore((s) => s.setBrief);
   const brand = usePipelineStore((s) => s.brand);
+  const setBrand = usePipelineStore((s) => s.setBrand);
   const selectedInspirations = usePipelineStore((s) => s.selectedInspirations);
+  const setSelectedInspirations = usePipelineStore((s) => s.setSelectedInspirations);
 
   const [maquettes, setMaquettes] = useState<MaquetteState[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,6 +36,24 @@ export default function MaquettesPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const startedRef = useRef(false);
+
+  // HYDRATATION : rattraper brief, brand, inspirations si store vide (reload direct)
+  useEffect(() => {
+    if (!runId) return;
+    const missing = !brief || !brand || selectedInspirations.length === 0;
+    if (!missing) return;
+    fetch(`/api/pipeline/run?id=${runId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.brief && !brief) setBrief(data.brief);
+        if (data?.brand && !brand) setBrand(data.brand);
+        if (data?.inspirations?.length > 0 && selectedInspirations.length === 0) {
+          setSelectedInspirations(data.inspirations);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
 
   useEffect(() => {
     // Besoin minimal : brief + au moins 1 inspiration. Brand optionnel (fallback default).

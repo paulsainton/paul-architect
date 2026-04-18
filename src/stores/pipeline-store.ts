@@ -17,6 +17,7 @@ interface PipelineStore {
   // Tunnel-specific state
   selectedInspirations: Inspiration[];
   toggleInspiration: (item: Inspiration) => void;
+  setSelectedInspirations: (items: Inspiration[]) => void;
   clearInspirations: () => void;
 
   brief: Brief | null;
@@ -75,6 +76,7 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
       if (s.selectedInspirations.length >= 10) return s;
       return { selectedInspirations: [...s.selectedInspirations, { ...item, selected: true }] };
     }),
+  setSelectedInspirations: (items) => set({ selectedInspirations: items }),
   clearInspirations: () => set({ selectedInspirations: [] }),
 
   brief: null,
