@@ -1,16 +1,16 @@
 import type { Inspiration, Brand, Brief } from "@/types/pipeline";
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
 
 const STITCH_API = "http://localhost:3012";
-const DATA_DIR = "/opt/paul-architect/data/extractions";
+const STITCH_URL = "https://stitch.ps-tools.dev";
 
 interface MaquetteResult {
   refUrl: string;
   refDomain: string;
   imageUrl?: string;
   stitchProjectId?: string;
+  stitchDashboardUrl?: string;
   status: "success" | "fallback" | "failed";
+  message?: string;
 }
 
 export async function generateMaquettes(
@@ -29,32 +29,22 @@ export async function generateMaquettes(
 
     onProgress(insp.url, "generating");
 
-    // Lire les tokens spécifiques de cette ref
-    let refTokens = "";
-    const tokensPath = join(DATA_DIR, runId, domain, "tokens.json");
-    if (existsSync(tokensPath)) {
-      try { refTokens = readFileSync(tokensPath, "utf-8"); } catch { /* ignore */ }
-    }
+    // Slug Stitch unique par inspiration
+    const slug = `${brief.project.slug}-${domain}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 60);
 
-    let designMd = "";
-    const designPath = join(DATA_DIR, runId, domain, "DESIGN.md");
-    if (existsSync(designPath)) {
-      try { designMd = readFileSync(designPath, "utf-8").slice(0, 2000); } catch { /* ignore */ }
-    }
-
-    const prompt = `Reproduis le layout de ${insp.url} pour le projet "${brief.project.name}" (${brief.project.type}).
-Palette: primary ${brand.palette.primary}, secondary ${brand.palette.secondary}, accent ${brand.palette.accent}, bg ${brand.palette.background}.
-Typo: heading ${brand.typography.heading}, body ${brand.typography.body}.
-Tokens de référence: ${refTokens.slice(0, 500)}
-Design system: ${designMd.slice(0, 500)}
-Features: ${brief.paul.priorities.join(", ")}.
-Mood: ${brief.paul.mood}.
-Génère un design DESKTOP complet inspiré à 100% de cette référence.`;
+    // Prompt ultra-cibl\u00e9
+    const description = `Design pour ${brief.project.name} (${brief.project.type}, secteur ${brief.project.sector}) inspir\u00e9 de ${insp.url}.
+Palette : primary ${brand.palette.primary}, secondary ${brand.palette.secondary}, accent ${brand.palette.accent}.
+Typo heading ${brand.typography.heading}, body ${brand.typography.body}.
+Mood : ${brief.paul.mood}. Device : ${brief.paul.device}.
+Audience : ${brief.paul.audience.slice(0, 200)}.`;
 
     try {
-      const slug = `${brief.project.slug}-${domain}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
-
-      // 1. Créer le projet Stitch (409 = existe déjà, ok)
+      // 1. Cr\u00e9er le projet Stitch (409 = existe d\u00e9j\u00e0, ok)
       const createRes = await fetch(`${STITCH_API}/api/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,56 +53,51 @@ Génère un design DESKTOP complet inspiré à 100% de cette référence.`;
           name: `${brief.project.name} — ${domain}`,
           type: brief.project.type === "mobile" ? "mobile" : "webapp",
           sector: brief.project.sector || "design",
-          targetAudience: brief.paul.audience || "general",
-          description: prompt.slice(0, 500),
+          targetAudience: brief.paul.audience?.slice(0, 300) || "general",
+          description: description.slice(0, 500),
           features: brief.paul.priorities.slice(0, 5),
         }),
         signal: AbortSignal.timeout(10_000),
       });
-      if (!createRes.ok && createRes.status !== 409) throw new Error("create failed");
 
-      // 2. Lancer le pipeline
+      if (!createRes.ok && createRes.status !== 409) {
+        const errText = await createRes.text().catch(() => "");
+        throw new Error(`create project failed: ${createRes.status} ${errText.slice(0, 100)}`);
+      }
+
+      // 2. Lancer le pipeline Stitch
       const runRes = await fetch(`${STITCH_API}/api/pipeline/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug }),
         signal: AbortSignal.timeout(10_000),
       });
-      if (!runRes.ok) throw new Error("run failed");
-      const { runId } = await runRes.json();
 
-      // 3. Poll le résultat (max 90s)
-      const deadline = Date.now() + 90_000;
-      let imageUrl = "";
-      while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 3000));
-        const statusRes = await fetch(`${STITCH_API}/api/pipeline/list?runId=${runId}`, {
-          signal: AbortSignal.timeout(5_000),
-        }).catch(() => null);
-        if (!statusRes?.ok) continue;
-        const s = await statusRes.json().catch(() => null);
-        if (s?.imageUrl || s?.preview) { imageUrl = s.imageUrl || s.preview; break; }
-        if (s?.status === "completed" || s?.status === "failed") break;
-      }
+      if (!runRes.ok) throw new Error("stitch run failed");
+      const { runId: stitchRunId } = await runRes.json();
 
+      // 3. Retourner imm\u00e9diatement avec l'URL du dashboard Stitch
+      // Le pipeline Stitch n\u00e9cessite validations user (bench selection, screens) \u2014 ne peut pas \u00eatre fully automatis\u00e9
       results.push({
         refUrl: insp.url,
         refDomain: domain,
-        imageUrl,
         stitchProjectId: slug,
-        status: imageUrl ? "success" : "fallback",
+        stitchDashboardUrl: `${STITCH_URL}/project/${slug}?run=${stitchRunId}`,
+        status: "success",
+        message: "Projet Stitch cr\u00e9\u00e9. Ouvre le dashboard pour continuer (bench selection, validations screens).",
       });
-      onProgress(insp.url, imageUrl ? "ready" : "fallback");
-      continue;
-    } catch { /* fallback */ }
-
-    // Fallback
-    results.push({
-      refUrl: insp.url,
-      refDomain: domain,
-      status: "fallback",
-    });
-    onProgress(insp.url, "fallback");
+      onProgress(insp.url, "ready");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      results.push({
+        refUrl: insp.url,
+        refDomain: domain,
+        stitchDashboardUrl: `${STITCH_URL}/projects`,
+        status: "fallback",
+        message: `Stitch indisponible (${msg.slice(0, 80)}). Ouvre Stitch manuellement pour cr\u00e9er le projet.`,
+      });
+      onProgress(insp.url, "fallback");
+    }
   }
 
   return results;

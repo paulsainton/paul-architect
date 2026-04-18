@@ -14,6 +14,8 @@ interface MaquetteState {
   refDomain: string;
   maquetteImage?: string;
   stitchProjectId?: string;
+  stitchDashboardUrl?: string;
+  message?: string;
   status: "generating" | "ready" | "approved" | "rejected" | "fallback";
 }
 
@@ -33,11 +35,11 @@ export default function MaquettesPage() {
   const startedRef = useRef(false);
 
   useEffect(() => {
-    if (startedRef.current || loading || done || !brief || !brand || selectedInspirations.length === 0) return;
+    // Besoin minimal : brief + au moins 1 inspiration. Brand optionnel (fallback default).
+    if (startedRef.current || loading || done || !brief || selectedInspirations.length === 0) return;
     startedRef.current = true;
     setLoading(true);
 
-    // Init state
     setMaquettes(
       selectedInspirations.map((insp) => ({
         refUrl: insp.url,
@@ -46,10 +48,19 @@ export default function MaquettesPage() {
       }))
     );
 
+    const effectiveBrand = brand || {
+      selectedOption: "A" as const,
+      palette: { primary: "#6366F1", secondary: "#8B5CF6", accent: "#F59E0B", background: "#FAFAFA", surface: "#FFFFFF", text: "#0F172A", textSecondary: "#64748B" },
+      typography: { heading: "Inter", body: "Inter" },
+      borderRadius: "12px",
+      source: "stitch-sdk" as const,
+      validatedAt: new Date().toISOString(),
+    };
+
     fetch("/api/pipeline/stitch-maquettes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ runId, inspirations: selectedInspirations, brief, brand }),
+      body: JSON.stringify({ runId, inspirations: selectedInspirations, brief, brand: effectiveBrand }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -57,15 +68,21 @@ export default function MaquettesPage() {
           prev.map((m) => {
             const result = data.find((d: { refUrl: string }) => d.refUrl === m.refUrl);
             if (result) {
-              return { ...m, maquetteImage: result.imageUrl, stitchProjectId: result.stitchProjectId,
-                status: result.status === "success" ? "ready" as const : "fallback" as const };
+              return {
+                ...m,
+                maquetteImage: result.imageUrl,
+                stitchProjectId: result.stitchProjectId,
+                stitchDashboardUrl: result.stitchDashboardUrl,
+                message: result.message,
+                status: result.status === "success" ? "ready" as const : "fallback" as const,
+              };
             }
             return { ...m, status: "fallback" as const };
           })
         );
         setDone(true);
       })
-      .catch(() => {})
+      .catch((err) => console.error("[maquettes] error:", err))
       .finally(() => setLoading(false));
   }, [brief, brand, selectedInspirations, runId, loading, done]);
 
@@ -96,6 +113,8 @@ export default function MaquettesPage() {
           refUrl={m.refUrl}
           refDomain={m.refDomain}
           maquetteImage={m.maquetteImage}
+          stitchDashboardUrl={m.stitchDashboardUrl}
+          message={m.message}
           status={m.status}
           onApprove={() =>
             setMaquettes((prev) => prev.map((x) => x.refUrl === m.refUrl ? { ...x, status: "approved" as const } : x))

@@ -97,6 +97,24 @@ export default function ExtractionPage() {
   }, [done, merged, runId]);
 
   const startedRef = useRef(false);
+  const run = usePipelineStore((s) => s.run);
+
+  // IDEMPOTENCE : si le run a d\u00e9j\u00e0 mergedTokens, ne pas relancer
+  useEffect(() => {
+    if (done || !runId) return;
+    // Check direct sur le run state
+    fetch(`/api/pipeline/run?id=${runId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.mergedTokens?.colors?.length > 0) {
+          // D\u00e9j\u00e0 fait \u2014 r\u00e9cup\u00e9rer et afficher les r\u00e9sultats
+          setMerged(data.mergedTokens);
+          setDone(true);
+          startedRef.current = true; // emp\u00eacher le relancement
+        }
+      })
+      .catch(() => {});
+  }, [runId, done]);
 
   // Lancement fire-and-forget — retourne immédiatement, SSE pour progression
   useEffect(() => {
@@ -119,11 +137,7 @@ export default function ExtractionPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        // La route retourne {started: true} immédiatement
-        // La complétion arrive via SSE 'clone:merge-complete'
-        if (data.error) {
-          setRunning(false);
-        }
+        if (data.error) setRunning(false);
       })
       .catch(() => setRunning(false));
   }, [selectedInspirations, runId, running, done]);

@@ -1,0 +1,93 @@
+{
+  "url": "https://reclaim.ai",
+  "domain": "reclaim.ai",
+  "extractedAt": "2026-04-18T12:33:11.161Z",
+  "pageTitle": "Reclaim – AI Calendar for Work & Life",
+  "cssCustomPropertiesCount": 81,
+  "colorsFound": 16,
+  "fontFamilies": [
+    "sans-serif",
+    "Poppins, sans-serif",
+    "Helvetica, Arial, \"Hiragino Sans GB\", STXihei, \"Microsoft YaHei\", \"WenQuanYi Micro Hei\", Hind, \"MS Gothic\", \"Apple SD Gothic Neo\", NanumBarunGothic, sans-serif",
+    "webflow-icons"
+  ],
+  "fontSizes": [
+    "16px",
+    "18px",
+    "12px",
+    "14px",
+    "20px",
+    "15px"
+  ],
+  "borderRadii": [
+    "3px",
+    "50%",
+    "10px",
+    "100px",
+    "33px"
+  ],
+  "shadows": [
+    "rgb(204, 204, 204) 0px 0px 2px 2px",
+    "rgb(243, 246, 255) 0px 2px 10px 1px",
+    "rgba(0, 0, 0, 0.2) 0px 1px 10px -3px, rgba(29, 140, 242, 0.08) 0px 4px 4px 0px inset"
+  ],
+  "sectionsFound": 49,
+  "elementsFound": [
+    "body",
+    "header",
+    "nav",
+    "main",
+    "sidebar",
+    "footer",
+    "hero",
+    "card",
+    "button",
+    "heading",
+    "subheading",
+    "link",
+    "badge",
+    "modal",
+    "dropdown",
+    "logo"
+  ],
+  "imagesCount": 50,
+  "navLinksCount": 98,
+  "componentVariants": {
+    "buttons": 10,
+    "headingH1": 1,
+    "headingH2": 5,
+    "links": 7,
+    "badges": 1
+  },
+  "fontFaces": [
+    "webflow-icons (400 normal)",
+    "Inter (300 normal)",
+    "Inter (400 normal)",
+    "Inter (500 normal)",
+    "Inter (600 normal)",
+    "Inter (700 normal)",
+    "Poppins (300 normal)",
+    "Poppins (400 normal)",
+    "Poppins (500 normal)",
+    "Poppins (600 normal)",
+    "Poppins (700 normal)"
+  ],
+  "mediaBreakpoints": [
+    "376px",
+    "479px",
+    "544px",
+    "600px",
+    "767px",
+    "768px",
+    "800px",
+    "920px",
+    "966px",
+    "970px",
+    "991px",
+    "992px",
+    "1200px",
+    "1280px",
+    "1440px",
+    "1650px"
+  ]
+}

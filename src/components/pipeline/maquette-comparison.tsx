@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, XCircle, Edit3, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Loader2, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ interface Props {
   refDomain: string;
   refScreenshot?: string;
   maquetteImage?: string;
+  stitchDashboardUrl?: string;
+  message?: string;
   status: "generating" | "ready" | "approved" | "rejected" | "fallback";
   onApprove: () => void;
   onReject: () => void;
@@ -17,7 +19,8 @@ interface Props {
 }
 
 export function MaquetteComparison({
-  refUrl, refDomain, refScreenshot, maquetteImage, status, onApprove, onReject, onZoom,
+  refUrl, refDomain, refScreenshot, maquetteImage, stitchDashboardUrl, message,
+  status, onApprove, onReject, onZoom,
 }: Props) {
   return (
     <Card className="mb-4">
@@ -27,6 +30,7 @@ export function MaquetteComparison({
         {status === "rejected" && <Badge variant="error">Rejet&eacute;</Badge>}
         {status === "fallback" && <Badge variant="warning">Fallback</Badge>}
         {status === "generating" && <Badge variant="accent"><Loader2 className="w-3 h-3 animate-spin mr-1" />G&eacute;n&eacute;ration</Badge>}
+        {status === "ready" && <Badge variant="success">Projet Stitch cr&eacute;&eacute;</Badge>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -63,6 +67,17 @@ export function MaquetteComparison({
             <div className="rounded-lg bg-bg-surface aspect-video flex items-center justify-center border border-border">
               <Loader2 className="w-6 h-6 animate-spin text-text-muted" />
             </div>
+          ) : stitchDashboardUrl ? (
+            <a
+              href={stitchDashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 aspect-video flex flex-col items-center justify-center border border-accent/40 hover:border-accent transition-colors gap-2"
+            >
+              <ArrowUpRight className="w-6 h-6 text-accent" />
+              <span className="text-xs text-accent font-medium">Ouvrir dans Stitch</span>
+              <span className="text-[10px] text-text-muted text-center px-3">Valide bench &amp; screens</span>
+            </a>
           ) : (
             <div className="rounded-lg bg-bg-surface aspect-video flex items-center justify-center border border-border">
               <p className="text-xs text-text-muted">Non disponible</p>
@@ -70,6 +85,10 @@ export function MaquetteComparison({
           )}
         </div>
       </div>
+
+      {message && (
+        <p className="mt-3 text-xs text-text-muted italic">{message}</p>
+      )}
 
       {status === "ready" && (
         <div className="flex items-center gap-2 mt-3">
@@ -79,6 +98,16 @@ export function MaquetteComparison({
           <Button size="sm" variant="danger" onClick={onReject}>
             <XCircle className="w-3.5 h-3.5" /> Rejeter
           </Button>
+          {stitchDashboardUrl && (
+            <a
+              href={stitchDashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto text-xs text-accent hover:underline flex items-center gap-1"
+            >
+              Valider dans Stitch <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
         </div>
       )}
     </Card>

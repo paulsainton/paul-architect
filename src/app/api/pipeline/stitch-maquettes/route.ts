@@ -25,16 +25,11 @@ export async function POST(request: NextRequest) {
   }
 
   const results = await generateMaquettes(runId, inspirations, brief, brand, (refUrl, status) => {
-    if (status === "generating") {
-      emitSSE(runId, "maquette:generating", { refUrl, status });
-    } else {
-      const result = results?.find((r) => r.refUrl === refUrl);
-      emitSSE(runId, "maquette:ready", {
-        refUrl,
-        imageUrl: result?.imageUrl || "",
-        stitchProjectId: result?.stitchProjectId || "",
-      });
-    }
+    // Ne PAS r\u00e9f\u00e9rencer `results` ici (TDZ \u2014 pas encore initialis\u00e9 pendant l'await)
+    emitSSE(runId, `maquette:${status === "generating" ? "generating" : "ready"}`, {
+      refUrl,
+      status,
+    });
   });
 
   setTunnelStatus(runId, 7, "completed");

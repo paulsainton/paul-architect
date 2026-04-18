@@ -59,9 +59,24 @@ export default function AnalysisPage() {
   }, [events]);
 
   const startedRef = useRef(false);
+  const setBrief = usePipelineStore((s) => s.setBrief);
+  const setBrand = usePipelineStore((s) => s.setBrand);
+
+  // Hydrater brief/brand depuis le run state si manquants (refresh direct sur /analysis)
+  useEffect(() => {
+    if ((brief && brand) || !runId) return;
+    fetch(`/api/pipeline/run?id=${runId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.brief && !brief) setBrief(data.brief);
+        if (data?.brand && !brand) setBrand(data.brand);
+      })
+      .catch(() => {});
+  }, [brief, brand, runId, setBrief, setBrand]);
 
   useEffect(() => {
-    if (startedRef.current || loading || done || !brief || !brand || !run?.mergedTokens) return;
+    // Lancer si on a AU MOINS le brief (brand + tokens sont optionnels avec fallback serveur)
+    if (startedRef.current || loading || done || !brief) return;
     startedRef.current = true;
     setLoading(true);
 
@@ -71,14 +86,14 @@ export default function AnalysisPage() {
       body: JSON.stringify({
         runId,
         brief,
-        brand,
-        tokens: run.mergedTokens,
+        brand: brand || { palette: { primary: "#6366F1" }, typography: { heading: "Inter", body: "Inter" } },
+        tokens: run?.mergedTokens || { colors: [], fonts: [], spacing: [], shadows: [], borderRadius: [] },
         inspirationsCount: selectedInspirations.length,
       }),
     })
       .then((r) => r.json())
       .then((data) => { setResults(data); setDone(true); })
-      .catch(() => {})
+      .catch((err) => console.error("[analysis] error:", err))
       .finally(() => setLoading(false));
   }, [brief, brand, run, runId, selectedInspirations.length, loading, done]);
 
