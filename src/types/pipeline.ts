@@ -26,6 +26,50 @@ export interface PipelineRun {
   updatedAt: string;
 }
 
+export interface Persona {
+  name: string;
+  role: string;
+  age: string;
+  painPoints: string[];
+  budget: string;
+  discoveryChannel: string;
+  quote: string;
+}
+
+export interface ValueProp {
+  title: string;
+  description: string;
+}
+
+export interface FeatureTier {
+  tier: "P0" | "P1" | "P2";
+  label: string;
+  features: string[];
+}
+
+export interface UserJourneyStep {
+  stage: "discovery" | "onboarding" | "activation" | "retention" | "referral";
+  label: string;
+  description: string;
+}
+
+export interface MarketingAngle {
+  angle: string;
+  hook: string;
+  channel: string;
+}
+
+export interface Risk {
+  category: "tech" | "market" | "legal" | "business";
+  description: string;
+  mitigation: string;
+}
+
+export interface RoadmapPhase {
+  horizon: "3mo" | "6mo" | "12mo";
+  goals: string[];
+}
+
 export interface Brief {
   project: {
     slug: string;
@@ -51,6 +95,19 @@ export interface Brief {
     mood: string;
     device: DeviceTarget;
     constraints: string;
+  };
+  // Brief enrichi — v3
+  enriched?: {
+    positioning: string;
+    uniqueSellingPoint: string;
+    valueProps: ValueProp[];
+    personas: Persona[];
+    userJourney: UserJourneyStep[];
+    marketingAngles: MarketingAngle[];
+    features: FeatureTier[];
+    kpis: string[];
+    risks: Risk[];
+    roadmap: RoadmapPhase[];
   };
   excludedPages: string[];
   validatedAt: string;

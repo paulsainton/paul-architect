@@ -1,7 +1,8 @@
 import { scanProject, type ProjectScan } from "./project-analyzer";
+import { enrichBrief } from "./brief-enricher";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import type { DeviceTarget, ProjectType } from "@/types/pipeline";
+import type { DeviceTarget, ProjectType, Persona, ValueProp, FeatureTier, UserJourneyStep, MarketingAngle, Risk, RoadmapPhase } from "@/types/pipeline";
 
 const EMPIRE_API = "http://localhost:3060";
 
@@ -25,6 +26,19 @@ export interface AuditedBrief {
   suggestedKeywords: string[];
   readmeExcerpt?: string;
   recentCommits: string[];
+  // Brief v3 \u2014 enrichissement produit/UX/marketing complet
+  enriched: {
+    positioning: string;
+    uniqueSellingPoint: string;
+    valueProps: ValueProp[];
+    personas: Persona[];
+    userJourney: UserJourneyStep[];
+    marketingAngles: MarketingAngle[];
+    features: FeatureTier[];
+    kpis: string[];
+    risks: Risk[];
+    roadmap: RoadmapPhase[];
+  };
 }
 
 export interface EmpireProject {
@@ -441,6 +455,14 @@ export async function auditProject(projectPath: string, slug: string): Promise<A
 
   const auditNotes = buildAuditNotes(empireData, scan, readme, recentCommits);
 
+  // Enrichissement produit complet (v3)
+  const enriched = enrichBrief({
+    name: scan.name,
+    slug,
+    sector,
+    device,
+  });
+
   return {
     scan,
     empireData: empireData || undefined,
@@ -451,6 +473,7 @@ export async function auditProject(projectPath: string, slug: string): Promise<A
     suggestedKeywords,
     readmeExcerpt: readme?.slice(0, 500),
     recentCommits,
+    enriched,
   };
 }
 

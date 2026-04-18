@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
+import { EnrichedBriefSections } from "./enriched-brief-sections";
 import type { Brief, ProjectType, DeviceTarget } from "@/types/pipeline";
 import type { AuditedBrief } from "@/lib/brief-auditor";
 
@@ -59,6 +60,7 @@ export function BriefForm({ audit, onSubmit, loading }: Props) {
         device,
         constraints,
       },
+      enriched: audit.enriched,
       excludedPages,
       validatedAt: new Date().toISOString(),
     };
@@ -160,12 +162,15 @@ export function BriefForm({ audit, onSubmit, loading }: Props) {
         )}
       </Card>
 
-      {/* Section Paul (pr\u00e9-rempli) */}
+      {/* BRIEF V3 \u2014 Sections enrichies (positionning, personas, journey, etc.) */}
+      {audit.enriched && <EnrichedBriefSections {...audit.enriched} />}
+
+      {/* Section Paul (pr\u00e9-rempli synth\u00e9tique) */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-accent" />
           <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-            Brief pr&eacute;-rempli &mdash; modifiable
+            Synth&egrave;se brief &mdash; modifiable
           </h3>
         </div>
         <div className="space-y-4">

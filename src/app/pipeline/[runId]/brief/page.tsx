@@ -102,7 +102,7 @@ export default function BriefPage() {
           <h2 className="text-lg font-semibold">Audit complet du projet en cours...</h2>
         </div>
         <p className="text-sm text-text-muted mb-6">
-          Scan local + EmpireDONE + inf\u00e9rences m\u00e9tier. ~2 secondes.
+          Scan local + EmpireDONE + inf&eacute;rences m&eacute;tier. ~2 secondes.
         </p>
         <div className="space-y-2">
           {scanSteps.map((step) => (
@@ -133,7 +133,7 @@ export default function BriefPage() {
         </Button>
       </div>
       <p className="text-sm text-text-muted mb-6">
-        Le brief a \u00e9t\u00e9 g\u00e9n\u00e9r\u00e9 automatiquement depuis l'audit. V\u00e9rifie et modifie si besoin avant de valider.
+        Le brief a &eacute;t&eacute; g&eacute;n&eacute;r&eacute; automatiquement depuis l&apos;audit. V&eacute;rifie et modifie si besoin avant de valider.
       </p>
 
       <BriefForm audit={audit} onSubmit={handleSubmit} loading={submitting} />
