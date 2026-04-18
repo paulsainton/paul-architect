@@ -163,7 +163,7 @@ export function InspirationDetailModal({ open, onClose, item }: Props) {
             )}
             {item.category && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-text-muted">Cat\u00e9gorie</p>
+                <p className="text-[10px] uppercase tracking-wider text-text-muted">Cat&eacute;gorie</p>
                 <Badge>{item.category}</Badge>
               </div>
             )}

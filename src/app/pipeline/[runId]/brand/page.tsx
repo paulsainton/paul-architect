@@ -153,6 +153,15 @@ export default function BrandPage() {
         3 propositions g&eacute;n&eacute;r&eacute;es depuis les tokens extraits par Clone Architect. Choisissez celle qui correspond au projet.
       </p>
 
+      {/* \u00c9tat vide : pas de brief, pas de loading */}
+      {!brief && !loading && options.length === 0 && (
+        <Card className="text-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
+          <p className="text-sm text-text-secondary">Chargement du brief...</p>
+          <p className="text-xs text-text-muted mt-2">Si rien ne se passe, retourne au brief pour le valider.</p>
+        </Card>
+      )}
+
       {/* Progress steps pendant g\u00e9n\u00e9ration */}
       {loading && options.length === 0 && (
         <Card className="mb-6">

@@ -52,11 +52,11 @@ export function InspirationCard({
           </div>
         )}
 
-        {/* Overlay hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+        {/* Overlay hover \u2014 pointer-events-none pour ne pas bloquer le click */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
           <div className="flex items-center gap-2 text-white">
             <Maximize2 className="w-4 h-4" />
-            <span className="text-xs">Voir les d\u00e9tails</span>
+            <span className="text-xs">Voir les d&eacute;tails</span>
           </div>
         </div>
 

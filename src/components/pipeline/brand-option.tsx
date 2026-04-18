@@ -56,7 +56,7 @@ export function BrandOptionCard({ option, selected, onSelect }: Props) {
           Aa Heading
         </div>
         <p style={{ color: palette.textSecondary, fontSize: "0.85rem", marginBottom: "1rem" }}>
-          Body text sample avec la palette appliqu\u00e9e
+          Body text sample avec la palette appliqu&eacute;e
         </p>
         <div className="flex gap-2 flex-wrap">
           <span

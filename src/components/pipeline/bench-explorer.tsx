@@ -30,9 +30,24 @@ interface Props {
   defaultSector?: string;
 }
 
+// Mapping secteurs m\u00e9tier \u2192 valeurs accept\u00e9es par l'API Bench
+function normalizeBenchSector(sector?: string): string {
+  if (!sector) return "";
+  const s = sector.toLowerCase();
+  if (/cuisine|food|nutrition|di\u00e9t/.test(s)) return "food";
+  if (/trading|crypto|finance|bourse/.test(s)) return "finance";
+  if (/ecom|commerce|retail|shop/.test(s)) return "ecom";
+  if (/saas|logiciel|software/.test(s)) return "saas";
+  if (/sant|health|fitness/.test(s)) return "health";
+  if (/\u00e9ducation|edtech|apprent/.test(s)) return "education";
+  if (/voyage|travel|tourisme/.test(s)) return "travel";
+  if (/productivit|life|habit|task/.test(s)) return ""; // pas de secteur bench \u2014 laisser vide pour tout voir
+  return "";
+}
+
 export function BenchExplorer({ selected, maxSelection, onToggle, defaultSector }: Props) {
   const [filters, setFilters] = useState<Filters>({
-    category: "", subcategory: "", sector: defaultSector || "", style: "", device: "", search: "",
+    category: "", subcategory: "", sector: normalizeBenchSector(defaultSector), style: "", device: "", search: "",
   });
   const [items, setItems] = useState<ExtendedInspiration[]>([]);
   const [loading, setLoading] = useState(false);

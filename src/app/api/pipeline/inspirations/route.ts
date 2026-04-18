@@ -109,10 +109,9 @@ export async function GET(request: NextRequest) {
             .sort((a, b) => a.index - b.index)
             .map((c) => proxyUrl(c.path))
             .filter(Boolean) as string[];
-        } else if (item.mediaUrls && item.mediaUrls.length > 0) {
-          // Fallback mediaUrls (ancien format \u2014 peut \u00eatre cass\u00e9)
-          carousel = item.mediaUrls.map((u) => proxyUrl(u)).filter(Boolean) as string[];
         }
+        // IMPORTANT : ancien format mediaUrls avec /api/files?path= est CASS\u00c9 (404)
+        // On ne l'utilise PAS \u2014 seulement localThumbnail/carouselImages (nouveau format)
 
         // Si pas de carousel, utiliser le main comme seule image
         if (carousel.length === 0 && mainImage) carousel = [mainImage];

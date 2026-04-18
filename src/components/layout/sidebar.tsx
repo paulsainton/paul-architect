@@ -93,9 +93,9 @@ export function Sidebar() {
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-text-muted">
           {isConnected ? (
-            <><Wifi className="w-3 h-3 text-status-success" /> SSE connect\u00e9</>
+            <><Wifi className="w-3 h-3 text-status-success" /> SSE connect&eacute;</>
           ) : (
-            <><WifiOff className="w-3 h-3 text-status-error" /> D\u00e9connect\u00e9</>
+            <><WifiOff className="w-3 h-3 text-status-error" /> D&eacute;connect&eacute;</>
           )}
         </div>
       </div>
