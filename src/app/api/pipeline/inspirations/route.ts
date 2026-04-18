@@ -116,9 +116,18 @@ export async function GET(request: NextRequest) {
         // Si pas de carousel, utiliser le main comme seule image
         if (carousel.length === 0 && mainImage) carousel = [mainImage];
 
+        // URL pour le clone : pr\u00e9f\u00e9rer detectedWebsites (vraie URL produit) vs Instagram/Dribbble
+        const originalUrl = item.url || "";
+        const isBlocked = /instagram\.com|tiktok\.com|dribbble\.com|behance\.net|pinterest|x\.com|twitter\.com/i.test(originalUrl);
+        const detectedSites = item.detectedWebsites || [];
+        const firstDetected = detectedSites.find((s) => s && !/instagram|tiktok|dribbble|behance|pinterest/i.test(s));
+        // URL cloneable : site d\u00e9tect\u00e9 si disponible, sinon URL originale si non-bloqu\u00e9e, sinon vide
+        const cloneUrl = firstDetected || (isBlocked ? "" : originalUrl);
+
         items.push({
           id: item.id || `bench_${items.length}`,
-          url: item.url || "",
+          url: originalUrl,
+          cloneUrl,  // URL pour clone-architect (produit r\u00e9el, pas Instagram)
           title: item.title || "Sans titre",
           description: item.summaryFr || "",
           imageUrl: mainImage || carousel[0] || "",
@@ -137,7 +146,7 @@ export async function GET(request: NextRequest) {
           score: item.qualityScore || 0,
           keyFeatures: item.keyFeatures || [],
           detectedTools: item.detectedTools || [],
-          detectedWebsites: item.detectedWebsites || [],
+          detectedWebsites: detectedSites,
           selected: false,
         });
       }

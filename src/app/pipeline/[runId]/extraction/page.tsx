@@ -104,7 +104,14 @@ export default function ExtractionPage() {
     startedRef.current = true;
     setRunning(true);
 
-    const urls = selectedInspirations.map((i) => i.url).filter(Boolean);
+    // Utiliser cloneUrl (vraie URL produit depuis detectedWebsites) si disponible
+    // sinon url (mais les URLs Instagram/TikTok échouent)
+    const urls = selectedInspirations
+      .map((i) => {
+        const clonable = (i as unknown as { cloneUrl?: string }).cloneUrl;
+        return clonable || i.url;
+      })
+      .filter(Boolean);
     fetch("/api/pipeline/clone", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

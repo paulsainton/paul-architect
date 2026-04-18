@@ -6,6 +6,55 @@ import type { BrandOption, MergedTokens, Brief, BrandPalette } from "@/types/pip
  * Respecte R16 : pas de g\u00e9n\u00e9ration de design, juste combinaison de tokens extraits.
  */
 
+// ========================================
+// PALETTES SECTORIELLES (fallback qualitatif si clone fail)
+// ========================================
+const SECTORAL_PALETTES: Record<string, string[]> = {
+  // Productivité (LifeOS, Notion-like)
+  productivity: ["#4F46E5", "#7C3AED", "#06B6D4", "#FDE68A", "#F9FAFB", "#111827", "#6B7280"],
+  // Cuisine / food (warm, appétissant)
+  food: ["#E63946", "#F4A261", "#2D6A4F", "#FFF3E0", "#FEF6E4", "#1A1A1A", "#6B4423"],
+  // Nutrition / santé (green fresh)
+  health: ["#10B981", "#34D399", "#FBBF24", "#ECFDF5", "#FFFFFF", "#064E3B", "#6B7280"],
+  // Trading / crypto (tech dark)
+  finance: ["#F59E0B", "#10B981", "#EF4444", "#0A0E1A", "#131A2B", "#F5F5F7", "#9CA3AF"],
+  // Marketing / AdTech (bold)
+  marketing: ["#EC4899", "#8B5CF6", "#F59E0B", "#FFFBFF", "#FFFFFF", "#1F2937", "#6B7280"],
+  // E-commerce (clean)
+  ecommerce: ["#111827", "#EF4444", "#F59E0B", "#FAFAFA", "#FFFFFF", "#0F172A", "#64748B"],
+  // Sneakers (urban bold)
+  sneakers: ["#FF6B35", "#F7B801", "#2E294E", "#F7F7F7", "#FFFFFF", "#0D0C0A", "#525252"],
+  // Agence (premium minimal)
+  agency: ["#000000", "#FFFFFF", "#FF3D00", "#FAFAFA", "#F5F5F5", "#0A0A0A", "#737373"],
+  // CRM (pro bleu)
+  crm: ["#2563EB", "#7C3AED", "#F59E0B", "#F8FAFC", "#FFFFFF", "#0F172A", "#64748B"],
+  // Freelance (rassurant)
+  freelance: ["#0891B2", "#10B981", "#F59E0B", "#F0FDFA", "#FFFFFF", "#134E4A", "#64748B"],
+  // Portfolio (editorial)
+  portfolio: ["#18181B", "#F59E0B", "#3B82F6", "#FAFAFA", "#FFFFFF", "#09090B", "#71717A"],
+  // Design tools (creative)
+  design: ["#8B5CF6", "#EC4899", "#06B6D4", "#FAFAFA", "#FFFFFF", "#09090B", "#71717A"],
+  // Default (moderne generic)
+  default: ["#6366F1", "#8B5CF6", "#EC4899", "#F8FAFC", "#FFFFFF", "#0F172A", "#64748B"],
+};
+
+function getSectoralPalette(sector: string): string[] {
+  const s = sector.toLowerCase();
+  if (/productivit|life.?os|habit|task/.test(s)) return SECTORAL_PALETTES.productivity;
+  if (/cuisine|food|recette|meal/.test(s)) return SECTORAL_PALETTES.food;
+  if (/nutrition|di\u00e9t|health|fitness/.test(s)) return SECTORAL_PALETTES.health;
+  if (/trading|crypto|finance/.test(s)) return SECTORAL_PALETTES.finance;
+  if (/marketing|adtech|ad |creative/.test(s)) return SECTORAL_PALETTES.marketing;
+  if (/e-?commerce|ecom|shop|retail/.test(s)) return SECTORAL_PALETTES.ecommerce;
+  if (/sneaker|streetwear/.test(s)) return SECTORAL_PALETTES.sneakers;
+  if (/agence|brand|studio/.test(s)) return SECTORAL_PALETTES.agency;
+  if (/crm|relation/.test(s)) return SECTORAL_PALETTES.crm;
+  if (/freelance|facture/.test(s)) return SECTORAL_PALETTES.freelance;
+  if (/portfolio|vitrine/.test(s)) return SECTORAL_PALETTES.portfolio;
+  if (/design tool|stitch|figma/.test(s)) return SECTORAL_PALETTES.design;
+  return SECTORAL_PALETTES.default;
+}
+
 function darken(hex: string, amount = 0.2): string {
   const m = hex.match(/^#([0-9a-f]{6})$/i);
   if (!m) return hex;
@@ -56,41 +105,50 @@ function ensureValidHex(hex: string | undefined, fallback: string): string {
   return /^#[0-9a-f]{6}$/i.test(clean) ? clean.toUpperCase() : fallback;
 }
 
-function buildPaletteA(colors: string[], isDarkMood: boolean): BrandPalette {
-  // Option A : palette dominante (les couleurs les plus fr\u00e9quentes)
+function buildPaletteA(colors: string[]): BrandPalette {
+  // Option A : LIGHT MODE dominant — fond clair, primary vibrant
   const primary = ensureValidHex(colors[0], "#6366F1");
   const secondary = ensureValidHex(colors[1], darken(primary, 0.15));
   const accent = ensureValidHex(colors[2], lighten(primary, 0.25));
-  const background = isDarkMood ? "#08090E" : "#FEFAE0";
-  const surface = isDarkMood ? "#10121A" : "#FFFFFF";
-  const text = isDarkMood ? "#F0F0F5" : "#1A1A1A";
-  const textSecondary = isDarkMood ? "#8B8B9E" : "#5A5A5A";
-  return { primary, secondary, accent, background, surface, text, textSecondary };
+  return {
+    primary,
+    secondary,
+    accent,
+    background: ensureValidHex(colors[3], "#FAFAFA"),
+    surface: "#FFFFFF",
+    text: "#0F172A",
+    textSecondary: "#64748B",
+  };
 }
 
-function buildPaletteB(colors: string[], isDarkMood: boolean): BrandPalette {
-  // Option B : harmonisation des 3 couleurs les plus fr\u00e9quentes
+function buildPaletteB(colors: string[]): BrandPalette {
+  // Option B : DARK MODE premium — fond sombre, accent chaud
   const primary = ensureValidHex(colors[0], "#6366F1");
-  const secondary = ensureValidHex(colors[1], lighten(primary, 0.15));
-  const accent = ensureValidHex(colors[3] || colors[2], "#F59E0B");
-  const background = isDarkMood ? darken(primary, 0.85) : lighten(primary, 0.95);
-  const surface = isDarkMood ? darken(primary, 0.75) : "#FFFFFF";
-  const text = isDarkMood ? "#F5F5F7" : darken(primary, 0.7);
-  const textSecondary = isDarkMood ? "#9CA3AF" : "#6B7280";
-  return { primary, secondary, accent, background, surface, text, textSecondary };
+  const secondary = ensureValidHex(colors[1], lighten(primary, 0.2));
+  const accent = ensureValidHex(colors[2], "#F59E0B");
+  return {
+    primary: lighten(primary, 0.1),
+    secondary,
+    accent,
+    background: "#0A0E1A",
+    surface: "#131A2B",
+    text: "#F5F5F7",
+    textSecondary: "#9CA3AF",
+  };
 }
 
-function buildPaletteC(colors: string[], isDarkMood: boolean): BrandPalette {
-  // Option C : contraste — compl\u00e9mentaire
-  const base = ensureValidHex(colors[0], "#6366F1");
-  const primary = complementary(base);
-  const secondary = ensureValidHex(colors[1], base);
-  const accent = ensureValidHex(colors[2], "#FF6B35");
-  const background = isDarkMood ? "#0A0A0F" : "#FAFAFA";
-  const surface = isDarkMood ? "#141420" : "#F5F5F7";
-  const text = isDarkMood ? "#FFFFFF" : "#0F0F14";
-  const textSecondary = isDarkMood ? "#A0A0B8" : "#4A4A5A";
-  return { primary, secondary, accent, background, surface, text, textSecondary };
+function buildPaletteC(colors: string[]): BrandPalette {
+  // Option C : MONO + 1 ACCENT — minimaliste radical, 1 seule couleur forte
+  const accent = ensureValidHex(colors[0], "#EC4899");
+  return {
+    primary: "#000000",
+    secondary: "#1A1A1A",
+    accent,
+    background: "#FAFAFA",
+    surface: "#FFFFFF",
+    text: "#000000",
+    textSecondary: "#525252",
+  };
 }
 
 function chooseFonts(fonts: string[], brief: Brief): { heading: string; body: string } {
@@ -119,10 +177,22 @@ export async function generateBrandOptions(
   brief: Brief,
   onProgress: (option: string, status: string, data?: Record<string, unknown>) => void
 ): Promise<BrandOption[]> {
-  const dominantColors = tokens.colors.slice(0, 8).map((c) => c.hex);
+  // TOUJOURS partir de la palette SECTORIELLE (pas du design system du projet cible, souvent sobre)
+  // Les tokens extraits du clone servent \u00e0 enrichir / varier, mais la base sectorielle domine
+  const sectoral = getSectoralPalette(brief.project.sector);
+  const cloneColors = tokens.colors.slice(0, 8).map((c) => c.hex);
+
+  // Merge : sectoriel en priorit\u00e9, tokens du clone en compl\u00e9ment
+  let dominantColors = [...sectoral];
+  if (cloneColors.length >= 3) {
+    // Mix : 4 premi\u00e8res sectorielles + 4 du clone
+    dominantColors = [...sectoral.slice(0, 4), ...cloneColors.slice(0, 4)];
+  }
+
   const dominantFonts = tokens.fonts.slice(0, 5).map((f) => f.family);
   const mood = brief.paul.mood?.toLowerCase() || "";
-  const isDarkMood = /dark|sombre|noir|tech|cyberpunk|minimaliste/i.test(mood);
+  // Dark mood seulement si mention explicite dark/sombre/tech/cyberpunk (pas juste "minimaliste")
+  const isDarkMood = /\bdark\b|sombre|noir\b|cyberpunk|tech dark/i.test(mood);
   const typography = chooseFonts(dominantFonts, brief);
 
   onProgress("setup", "analyzing-tokens", {
@@ -134,9 +204,9 @@ export async function generateBrandOptions(
 
   const options: BrandOption[] = [];
   const builders: { option: "A" | "B" | "C"; label: string; build: () => BrandPalette }[] = [
-    { option: "A", label: "Palette dominante", build: () => buildPaletteA(dominantColors, isDarkMood) },
-    { option: "B", label: "Harmonisation", build: () => buildPaletteB(dominantColors, isDarkMood) },
-    { option: "C", label: "Contraste", build: () => buildPaletteC(dominantColors, isDarkMood) },
+    { option: "A", label: "Light mode vibrant", build: () => buildPaletteA(dominantColors) },
+    { option: "B", label: "Dark mode premium", build: () => buildPaletteB(dominantColors) },
+    { option: "C", label: "Minimaliste radical", build: () => buildPaletteC(dominantColors) },
   ];
 
   for (const b of builders) {

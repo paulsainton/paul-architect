@@ -11,9 +11,9 @@ interface Props {
 }
 
 const LABELS: Record<string, string> = {
-  A: "Palette dominante",
-  B: "Harmonisation",
-  C: "Contraste compl\u00e9mentaire",
+  A: "Light mode vibrant",
+  B: "Dark mode premium",
+  C: "Minimaliste radical",
 };
 
 export function BrandOptionCard({ option, selected, onSelect }: Props) {

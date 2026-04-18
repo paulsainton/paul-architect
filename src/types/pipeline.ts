@@ -116,6 +116,7 @@ export interface Brief {
 export interface Inspiration {
   id: string;
   url: string;
+  cloneUrl?: string; // URL cloneable (vraie URL produit depuis detectedWebsites)
   title: string;
   description?: string;
   imageUrl?: string;
@@ -131,6 +132,8 @@ export interface Inspiration {
   devices?: string[];
   businessSectors?: string[];
   keyFeatures?: string[];
+  detectedWebsites?: string[];
+  detectedTools?: string[];
   selected: boolean;
 }
 
