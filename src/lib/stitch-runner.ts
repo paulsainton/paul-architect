@@ -52,30 +52,58 @@ Mood: ${brief.paul.mood}.
 Génère un design DESKTOP complet inspiré à 100% de cette référence.`;
 
     try {
-      const res = await fetch(`${STITCH_API}/api/pipeline/run`, {
+      const slug = `${brief.project.slug}-${domain}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
+
+      // 1. Créer le projet Stitch (409 = existe déjà, ok)
+      const createRes = await fetch(`${STITCH_API}/api/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt,
-          projectName: `${brief.project.name} — Inspired by ${domain}`,
-          device: "DESKTOP",
-          format: "html",
+          slug,
+          name: `${brief.project.name} — ${domain}`,
+          type: brief.project.type === "mobile" ? "mobile" : "webapp",
+          sector: brief.project.sector || "design",
+          targetAudience: brief.paul.audience || "general",
+          description: prompt.slice(0, 500),
+          features: brief.paul.priorities.slice(0, 5),
         }),
-        signal: AbortSignal.timeout(90_000),
+        signal: AbortSignal.timeout(10_000),
       });
+      if (!createRes.ok && createRes.status !== 409) throw new Error("create failed");
 
-      if (res.ok) {
-        const data = await res.json();
-        results.push({
-          refUrl: insp.url,
-          refDomain: domain,
-          imageUrl: data.imageUrl || data.preview || "",
-          stitchProjectId: data.projectId || data.id || "",
-          status: "success",
-        });
-        onProgress(insp.url, "ready");
-        continue;
+      // 2. Lancer le pipeline
+      const runRes = await fetch(`${STITCH_API}/api/pipeline/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!runRes.ok) throw new Error("run failed");
+      const { runId } = await runRes.json();
+
+      // 3. Poll le résultat (max 90s)
+      const deadline = Date.now() + 90_000;
+      let imageUrl = "";
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const statusRes = await fetch(`${STITCH_API}/api/pipeline/list?runId=${runId}`, {
+          signal: AbortSignal.timeout(5_000),
+        }).catch(() => null);
+        if (!statusRes?.ok) continue;
+        const s = await statusRes.json().catch(() => null);
+        if (s?.imageUrl || s?.preview) { imageUrl = s.imageUrl || s.preview; break; }
+        if (s?.status === "completed" || s?.status === "failed") break;
       }
+
+      results.push({
+        refUrl: insp.url,
+        refDomain: domain,
+        imageUrl,
+        stitchProjectId: slug,
+        status: imageUrl ? "success" : "fallback",
+      });
+      onProgress(insp.url, imageUrl ? "ready" : "fallback");
+      continue;
     } catch { /* fallback */ }
 
     // Fallback

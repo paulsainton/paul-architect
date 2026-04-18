@@ -10,27 +10,59 @@ interface StitchGenerateResult {
 
 async function callStitch(prompt: string, projectName: string): Promise<StitchGenerateResult | null> {
   try {
-    // Créer un projet Stitch
-    const createRes = await fetch(`${STITCH_API}/api/pipeline/run`, {
+    // 1. Créer ou récupérer un projet Stitch
+    const slug = projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
+
+    const createProjRes = await fetch(`${STITCH_API}/api/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt,
-        projectName,
-        device: "DESKTOP",
-        format: "html",
+        slug,
+        name: projectName,
+        type: "webapp",
+        sector: "design",
+        targetAudience: "general",
+        description: prompt.slice(0, 500),
+        features: ["hero", "features", "footer"],
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(10_000),
     });
 
-    if (!createRes.ok) return null;
-    const data = await createRes.json();
+    // 409 = déjà existe, on peut continuer
+    if (!createProjRes.ok && createProjRes.status !== 409) return null;
 
-    return {
-      projectId: data.projectId || data.id || "",
-      imageUrl: data.imageUrl || data.preview || "",
-      html: data.html || "",
-    };
+    // 2. Lancer le pipeline avec le slug
+    const runRes = await fetch(`${STITCH_API}/api/pipeline/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!runRes.ok) return null;
+    const { runId } = await runRes.json();
+    if (!runId) return null;
+
+    // 3. Attendre la fin via stream (max 90s)
+    const deadline = Date.now() + 90_000;
+    let imageUrl = "";
+    let html = "";
+
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const statusRes = await fetch(`${STITCH_API}/api/pipeline/list?runId=${runId}`, {
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => null);
+      if (!statusRes?.ok) continue;
+      const status = await statusRes.json().catch(() => null);
+      if (status?.imageUrl || status?.preview) {
+        imageUrl = status.imageUrl || status.preview;
+        html = status.html || "";
+        break;
+      }
+      if (status?.status === "completed" || status?.status === "failed") break;
+    }
+
+    return { projectId: slug, imageUrl, html };
   } catch {
     return null;
   }
