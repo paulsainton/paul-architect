@@ -42,21 +42,33 @@ export async function runCloneArchitect(
 
     const proc = spawn("npm", ["run", "clone", "--", url], {
       cwd: CLONE_DIR,
-      env: { ...process.env, NODE_ENV: "production" },
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        // Critique : utiliser les browsers de paul (root n'a pas chromium-1217)
+        PLAYWRIGHT_BROWSERS_PATH: "/home/paul/.cache/ms-playwright",
+        // HOME pour que npm trouve .npmrc et cache
+        HOME: "/home/paul",
+      },
       timeout: 120_000,
     });
 
     let stdout = "";
+    let stderr = "";
     proc.stdout.on("data", (data) => {
       stdout += data.toString();
-      // Parser la progression du clone
       if (stdout.includes("screenshot")) onProgress("screenshot", 30);
-      if (stdout.includes("css-extraction")) onProgress("css-extraction", 50);
-      if (stdout.includes("tokenize")) onProgress("tokenize", 70);
-      if (stdout.includes("analyze")) onProgress("analyze", 85);
+      if (stdout.includes("css-extraction") || stdout.includes("CSS EXTRACTION")) onProgress("css-extraction", 50);
+      if (stdout.includes("TOKENIZATION") || stdout.includes("tokenize")) onProgress("tokenize", 70);
+      if (stdout.includes("LAYOUT ANALYSIS") || stdout.includes("analyze")) onProgress("analyze", 85);
     });
+    proc.stderr.on("data", (data) => { stderr += data.toString(); });
 
     proc.on("close", (code) => {
+      if (code !== 0) {
+        console.error(`[clone-runner] clone failed code=${code} url=${url}`);
+        console.error(`[clone-runner] stderr: ${stderr.slice(-500)}`);
+      }
       onProgress("finalizing", 95);
 
       // Chercher les outputs du clone
@@ -68,29 +80,81 @@ export async function runCloneArchitect(
           cpSync(extractionsDir, outputDir, { recursive: true });
         } catch { /* ignore */ }
 
-        // Lire tokens.json
+        // Lire tokens.json (format clone-architect v2 : structure nested)
         const tokensPath = join(outputDir, "tokens.json");
         if (existsSync(tokensPath)) {
           try {
             const raw = JSON.parse(readFileSync(tokensPath, "utf-8"));
-            result.tokens = {
-              colors: (raw.colors || []).map((c: string | { hex: string }) => ({
-                hex: typeof c === "string" ? c : c.hex,
-                frequency: 1,
-                source: domain,
-              })),
-              fonts: (raw.fonts || raw.typography || []).map((f: string | { family: string }) => ({
-                family: typeof f === "string" ? f : f.family,
-                count: 1,
-              })),
-              spacing: (raw.spacing || []).map((s: string | { value: string }) => ({
-                value: typeof s === "string" ? s : s.value,
-                count: 1,
-              })),
-              shadows: raw.shadows || [],
-              borderRadius: raw.borderRadius || [],
+
+            // Colors : format nested {background: {...}, text: {...}, accent: {...}, border, shadow}
+            const colorHexes: string[] = [];
+            const flattenColors = (obj: unknown): void => {
+              if (typeof obj === "string") {
+                // Convertir rgb(a) en hex
+                const match = obj.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                if (match) {
+                  const hex = "#" + [match[1], match[2], match[3]]
+                    .map((n) => parseInt(n).toString(16).padStart(2, "0")).join("").toUpperCase();
+                  if (!colorHexes.includes(hex)) colorHexes.push(hex);
+                } else if (/^#[0-9a-f]{6}$/i.test(obj)) {
+                  colorHexes.push(obj.toUpperCase());
+                }
+              } else if (Array.isArray(obj)) {
+                obj.forEach(flattenColors);
+              } else if (obj && typeof obj === "object") {
+                Object.values(obj).forEach(flattenColors);
+              }
             };
-          } catch { /* invalid json */ }
+            flattenColors(raw.colors);
+            result.tokens.colors = colorHexes.map((hex) => ({ hex, frequency: 1, source: domain }));
+
+            // Fonts : typography.fontFamily {primary, secondary, mono}
+            const fonts: string[] = [];
+            const ff = raw.typography?.fontFamily;
+            if (ff) {
+              Object.values(ff).forEach((v) => {
+                if (typeof v === "string" && v.trim() && !fonts.includes(v)) fonts.push(v);
+              });
+            }
+            if (Array.isArray(raw.fonts)) {
+              raw.fonts.forEach((f: string | { family: string }) => {
+                const name = typeof f === "string" ? f : f.family;
+                if (name && !fonts.includes(name)) fonts.push(name);
+              });
+            }
+            result.tokens.fonts = fonts.map((family) => ({ family, count: 1 }));
+
+            // Spacing : dict xs/sm/base/lg...
+            const spacingValues: string[] = [];
+            if (raw.spacing && typeof raw.spacing === "object") {
+              Object.values(raw.spacing).forEach((v) => {
+                if (typeof v === "string") spacingValues.push(v);
+              });
+            }
+            result.tokens.spacing = spacingValues.map((value) => ({ value, count: 1 }));
+
+            // Shadows
+            const shadows: string[] = [];
+            if (raw.shadows) {
+              if (Array.isArray(raw.shadows)) shadows.push(...raw.shadows.filter((s: unknown): s is string => typeof s === "string"));
+              else if (typeof raw.shadows === "object") {
+                Object.values(raw.shadows).forEach((v) => { if (typeof v === "string") shadows.push(v); });
+              }
+            }
+            result.tokens.shadows = shadows;
+
+            // Border radius
+            const radii: string[] = [];
+            if (raw.borderRadius) {
+              if (Array.isArray(raw.borderRadius)) radii.push(...raw.borderRadius.filter((r: unknown): r is string => typeof r === "string"));
+              else if (typeof raw.borderRadius === "object") {
+                Object.values(raw.borderRadius).forEach((v) => { if (typeof v === "string") radii.push(v); });
+              }
+            }
+            result.tokens.borderRadius = radii;
+          } catch (err) {
+            console.error(`[clone-runner] tokens.json parse error: ${err}`);
+          }
         }
 
         // Lire DESIGN.md
@@ -105,13 +169,27 @@ export async function runCloneArchitect(
           result.layoutAnalysis = readFileSync(layoutPath, "utf-8");
         }
 
-        // Screenshots
+        // Screenshots (clone-architect v2 : above-fold-desktop.png, full-page-desktop.png, etc.)
         const screenshotsDir = join(outputDir, "screenshots");
-        if (existsSync(join(screenshotsDir, "desktop.png"))) {
-          result.screenshots.desktop = `/data/extractions/${runId}/${domain}/screenshots/desktop.png`;
-        }
-        if (existsSync(join(screenshotsDir, "mobile.png"))) {
-          result.screenshots.mobile = `/data/extractions/${runId}/${domain}/screenshots/mobile.png`;
+        if (existsSync(screenshotsDir)) {
+          const candidates = [
+            "above-fold-desktop.png",
+            "full-page-desktop.png",
+            "desktop.png",
+          ];
+          for (const f of candidates) {
+            if (existsSync(join(screenshotsDir, f))) {
+              result.screenshots.desktop = `/api/pipeline/extraction-media?url=${encodeURIComponent(`${runId}/${domain}/screenshots/${f}`)}`;
+              break;
+            }
+          }
+          const mobileOpts = ["above-fold-mobile.png", "full-page-mobile.png", "mobile.png"];
+          for (const f of mobileOpts) {
+            if (existsSync(join(screenshotsDir, f))) {
+              result.screenshots.mobile = `/api/pipeline/extraction-media?url=${encodeURIComponent(`${runId}/${domain}/screenshots/${f}`)}`;
+              break;
+            }
+          }
         }
 
         result.status = "complete";

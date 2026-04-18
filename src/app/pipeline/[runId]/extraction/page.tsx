@@ -68,14 +68,37 @@ export default function ExtractionPage() {
       });
 
       if (event.type === "clone:merge-complete") {
+        if (event.data.colors || event.data.fonts) {
+          setMerged({
+            colors: [],
+            fonts: [],
+            spacing: [],
+            shadows: [],
+            borderRadius: [],
+            // On attend que le store récupère les mergedTokens via le run state
+          });
+        }
         setDone(true);
+        setRunning(false);
       }
     }
   }, [events]);
 
+  // Récupérer mergedTokens du run state dès que disponible (après merge)
+  useEffect(() => {
+    if (done && !merged?.colors.length) {
+      fetch(`/api/pipeline/run?id=${runId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.mergedTokens) setMerged(data.mergedTokens);
+        })
+        .catch(() => {});
+    }
+  }, [done, merged, runId]);
+
   const startedRef = useRef(false);
 
-  // Lancement automatique — une seule fois
+  // Lancement fire-and-forget — retourne immédiatement, SSE pour progression
   useEffect(() => {
     if (startedRef.current || running || done || selectedInspirations.length === 0) return;
     startedRef.current = true;
@@ -89,11 +112,13 @@ export default function ExtractionPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.merged) setMerged(data.merged);
-        setDone(true);
+        // La route retourne {started: true} immédiatement
+        // La complétion arrive via SSE 'clone:merge-complete'
+        if (data.error) {
+          setRunning(false);
+        }
       })
-      .catch(() => {})
-      .finally(() => setRunning(false));
+      .catch(() => setRunning(false));
   }, [selectedInspirations, runId, running, done]);
 
   return (

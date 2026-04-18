@@ -4,20 +4,15 @@ import { mergeTokens } from "@/lib/token-merger";
 import { getRun, emitSSE, setTunnelStatus, updateRun } from "@/lib/pipeline-state";
 import type { ExtractionResult } from "@/types/pipeline";
 
-export async function POST(request: NextRequest) {
-  const { runId, urls } = await request.json();
+export const maxDuration = 600; // 10 min max pour cette route (Next.js 16)
 
-  const run = getRun(runId);
-  if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
-  if (!urls || !Array.isArray(urls) || urls.length === 0) {
-    return NextResponse.json({ error: "urls required" }, { status: 400 });
-  }
-
-  setTunnelStatus(runId, 3, "active");
-
+/**
+ * T3 Clone fire-and-forget : retourne imm\u00e9diatement, SSE events pour progression.
+ * Les URLs sont clon\u00e9es en s\u00e9quentiel mais la route retourne avant la fin.
+ */
+async function runClonesBackground(runId: string, urls: string[]) {
   const extractions: ExtractionResult[] = [];
 
-  // Séquentiel pour éviter surcharge Playwright
   for (let i = 0; i < urls.length; i++) {
     const url = urls[i];
     emitSSE(runId, "clone:queue", { url, position: i + 1, total: urls.length });
@@ -40,12 +35,13 @@ export async function POST(request: NextRequest) {
         url,
         colorsCount: result.tokens.colors.length,
         fontsCount: result.tokens.fonts.length,
+        spacingCount: result.tokens.spacing.length,
       });
 
       emitSSE(runId, "clone:complete", { url, status: result.status });
       extractions.push(result);
     } catch (err) {
-      emitSSE(runId, "clone:error", { url, error: String(err), fallback: "skipped" });
+      emitSSE(runId, "clone:error", { url, error: String(err) });
       extractions.push({
         url,
         domain: new URL(url).hostname,
@@ -56,17 +52,37 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Merge des tokens
-  emitSSE(runId, "clone:merge-start", { totalSources: extractions.filter((e) => e.status !== "failed").length });
+  emitSSE(runId, "clone:merge-start", {
+    totalSources: extractions.filter((e) => e.status !== "failed").length,
+  });
   const merged = mergeTokens(extractions);
   emitSSE(runId, "clone:merge-complete", {
     colors: merged.colors.length,
     fonts: merged.fonts.length,
+    extractions,
   });
 
   updateRun(runId, { mergedTokens: merged });
   setTunnelStatus(runId, 3, "completed");
   setTunnelStatus(runId, 4, "active");
+}
 
-  return NextResponse.json({ extractions, merged });
+export async function POST(request: NextRequest) {
+  const { runId, urls } = await request.json();
+
+  const run = getRun(runId);
+  if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
+  if (!urls || !Array.isArray(urls) || urls.length === 0) {
+    return NextResponse.json({ error: "urls required" }, { status: 400 });
+  }
+
+  setTunnelStatus(runId, 3, "active");
+
+  // Fire-and-forget : ne pas await pour ne pas timeout la route
+  runClonesBackground(runId, urls).catch((err) => {
+    console.error(`[clone-route] background error:`, err);
+    emitSSE(runId, "clone:error", { error: String(err) });
+  });
+
+  return NextResponse.json({ started: true, urls: urls.length, runId });
 }

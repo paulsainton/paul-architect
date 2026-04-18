@@ -1,0 +1,61 @@
+{
+  "url": "https://motion.ai",
+  "domain": "motion.ai",
+  "extractedAt": "2026-04-18T11:11:26.017Z",
+  "pageTitle": "Motion AI - Chatbots made easy",
+  "cssCustomPropertiesCount": 0,
+  "colorsFound": 7,
+  "fontFamilies": [
+    "\"Times New Roman\"",
+    "\"Open Sans\", Arial, sans-serif",
+    "\"Open Sans\", Helvetica, Arial, Lucida, sans-serif"
+  ],
+  "fontSizes": [
+    "16px",
+    "14px",
+    "18px",
+    "45px",
+    "13px"
+  ],
+  "borderRadii": [],
+  "shadows": [],
+  "sectionsFound": 21,
+  "elementsFound": [
+    "body",
+    "header",
+    "main",
+    "footer",
+    "hero",
+    "heading",
+    "link",
+    "logo"
+  ],
+  "imagesCount": 3,
+  "navLinksCount": 0,
+  "componentVariants": {
+    "headingH1": 1,
+    "links": 3
+  },
+  "fontFaces": [
+    "slick (normal normal)",
+    "ElegantIcons (normal normal)",
+    "Open Sans (300 italic)",
+    "Open Sans (400 italic)",
+    "Open Sans (600 italic)",
+    "Open Sans (700 italic)",
+    "Open Sans (800 italic)",
+    "Open Sans (300 normal)",
+    "Open Sans (400 normal)",
+    "Open Sans (600 normal)",
+    "Open Sans (700 normal)",
+    "Open Sans (800 normal)"
+  ],
+  "mediaBreakpoints": [
+    "400px",
+    "479px",
+    "568px",
+    "767px",
+    "768px",
+    "860px"
+  ]
+}
