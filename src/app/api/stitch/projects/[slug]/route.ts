@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const STITCH_API = "http://localhost:3012";
+import { CONFIG } from "@/lib/config";
+const STITCH_API = CONFIG.STITCH_API;
 
 /**
  * Proxy GET /api/stitch/projects/[slug] \u2014 d\u00e9tails du projet + maquettes

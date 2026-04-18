@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+const AUTH_USER = process.env.PA_USER || "paul.sainton";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,7 +18,7 @@ export function middleware(request: NextRequest) {
   }
   try {
     const decoded = Buffer.from(session.value, "base64").toString("utf-8");
-    if (!decoded.startsWith("paul.sainton:")) {
+    if (!decoded.startsWith(`${AUTH_USER}:`)) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
   } catch {

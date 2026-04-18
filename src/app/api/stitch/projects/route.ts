@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const STITCH_API = "http://localhost:3012";
+import { CONFIG } from "@/lib/config";
+const STITCH_API = CONFIG.STITCH_API;
 
 /**
  * Proxy GET /api/stitch/projects \u2014 liste tous les projets Stitch
@@ -11,14 +12,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(`${STITCH_API}/api/projects`, { signal: AbortSignal.timeout(8_000) });
-    if (!res.ok) return NextResponse.json([], { status: 200 });
+    if (!res.ok) {
+      return NextResponse.json({ error: `Stitch ${res.status}`, items: [] }, { status: 502 });
+    }
     const all = await res.json();
-
     const list = Array.isArray(all) ? all : [];
     const filtered = prefix ? list.filter((p: { slug?: string }) => p.slug?.startsWith(prefix)) : list;
-
     return NextResponse.json(filtered);
-  } catch {
-    return NextResponse.json([], { status: 200 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[stitch/projects] error:", msg);
+    return NextResponse.json({ error: msg, items: [] }, { status: 502 });
   }
 }

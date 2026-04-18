@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
-const BENCH_API = "http://localhost:3010";
+import { CONFIG } from "@/lib/config";
+const BENCH_API = CONFIG.BENCH_API;
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");

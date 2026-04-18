@@ -33,7 +33,8 @@ interface EmpireProject {
   progress?: { pct: number; done: number; total: number };
 }
 
-const EMPIRE_API = "http://localhost:3060";
+import { CONFIG } from "@/lib/config";
+const EMPIRE_API = CONFIG.EMPIRE_API;
 const SCAN_DIRS = ["/opt", "/var/www", "/home/paul/projects"];
 const SKIP = new Set([
   "paul-architect", "containerd", "lost+found", "backups", "html", "sites",

@@ -3,7 +3,8 @@ import { auditProject } from "@/lib/brief-auditor";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import { existsSync } from "fs";
 
-const EMPIRE_API = "http://localhost:3060";
+import { CONFIG } from "@/lib/config";
+const EMPIRE_API = CONFIG.EMPIRE_API;
 
 async function resolveProjectPath(slug: string): Promise<string | null> {
   // 1. EmpireDONE : source de v\u00e9rit\u00e9

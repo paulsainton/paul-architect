@@ -61,10 +61,17 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
   },
 
   addEvent: (event) =>
-    set((s) => ({
-      events: [...s.events, event],
-      run: s.run ? { ...s.run, updatedAt: event.timestamp } : null,
-    })),
+    set((s) => {
+      // Bounded : cap \u00e0 200 events client-side pour \u00e9viter memory bloat
+      const MAX_EVENTS = 200;
+      const nextEvents = s.events.length >= MAX_EVENTS
+        ? [...s.events.slice(-MAX_EVENTS + 1), event]
+        : [...s.events, event];
+      return {
+        events: nextEvents,
+        run: s.run ? { ...s.run, updatedAt: event.timestamp } : null,
+      };
+    }),
 
   selectedInspirations: [],
   toggleInspiration: (item) =>

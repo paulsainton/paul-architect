@@ -4,7 +4,8 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import type { DeviceTarget, ProjectType, Persona, ValueProp, FeatureTier, UserJourneyStep, MarketingAngle, Risk, RoadmapPhase } from "@/types/pipeline";
 
-const EMPIRE_API = "http://localhost:3060";
+import { CONFIG } from "./config";
+const EMPIRE_API = CONFIG.EMPIRE_API;
 
 export interface AuditedBrief {
   scan: ProjectScan;

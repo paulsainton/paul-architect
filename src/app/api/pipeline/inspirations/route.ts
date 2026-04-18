@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BENCH_API = "http://localhost:3010";
+import { CONFIG } from "@/lib/config";
+const BENCH_API = CONFIG.BENCH_API;
 
 interface BenchItem {
   id: string;
@@ -155,7 +156,9 @@ export async function GET(request: NextRequest) {
     items.sort((a, b) => (b.score as number) - (a.score as number));
 
     return NextResponse.json(items);
-  } catch {
-    return NextResponse.json([], { status: 200 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[inspirations] error:", msg);
+    return NextResponse.json({ error: msg, items: [] }, { status: 502 });
   }
 }

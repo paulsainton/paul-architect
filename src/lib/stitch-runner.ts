@@ -2,10 +2,11 @@ import type { Inspiration, Brand, Brief } from "@/types/pipeline";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-const STITCH_API = "http://localhost:3012";
-const STITCH_URL = "https://stitch.ps-tools.dev";
-const CLONE_EXTRACTIONS = "/home/paul/clone-architect/extractions";
-const PA_DATA = "/opt/paul-architect/data/extractions";
+import { CONFIG } from "./config";
+const STITCH_API = CONFIG.STITCH_API;
+const STITCH_URL = CONFIG.STITCH_PUBLIC_URL;
+const CLONE_EXTRACTIONS = `${CONFIG.CLONE_ARCHITECT_DIR}/extractions`;
+const PA_DATA = `${CONFIG.PA_DATA_DIR}/extractions`;
 
 interface MaquetteResult {
   refUrl: string;

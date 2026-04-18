@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="fr" className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}>
       <body className="min-h-full bg-bg-primary text-text-primary font-sans">
         <AppShell>{children}</AppShell>
+        <Toaster position="top-right" theme="dark" richColors />
       </body>
     </html>
   );
