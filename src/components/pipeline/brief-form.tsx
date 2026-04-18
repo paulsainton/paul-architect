@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 import type { Brief, ProjectType, DeviceTarget } from "@/types/pipeline";
-import type { ProjectScan } from "@/lib/project-analyzer";
+import type { AuditedBrief } from "@/lib/brief-auditor";
 
 const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
   { value: "website", label: "Site web" },
@@ -20,21 +21,24 @@ const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
 ];
 
 interface Props {
-  scan: ProjectScan;
+  audit: AuditedBrief;
   onSubmit: (brief: Brief) => void;
   loading?: boolean;
 }
 
-export function BriefForm({ scan, onSubmit, loading }: Props) {
-  const [projectType, setProjectType] = useState<ProjectType>("webapp");
-  const [sector, setSector] = useState(scan.claudeMdSummary.match(/Secteur\s*:\s*(.+)/i)?.[1] || "");
+export function BriefForm({ audit, onSubmit, loading }: Props) {
+  const { scan, autofilled } = audit;
+
+  // Pr\u00e9-remplissage depuis l'audit
+  const [projectType, setProjectType] = useState<ProjectType>(autofilled.type);
+  const [sector, setSector] = useState(autofilled.sector);
   const [excludedPages, setExcludedPages] = useState<string[]>([]);
-  const [audience, setAudience] = useState("");
-  const [vision, setVision] = useState("");
-  const [priorities, setPriorities] = useState("");
-  const [mood, setMood] = useState("");
-  const [device, setDevice] = useState<DeviceTarget>("both");
-  const [constraints, setConstraints] = useState("");
+  const [audience, setAudience] = useState(autofilled.audience);
+  const [vision, setVision] = useState(autofilled.vision);
+  const [priorities, setPriorities] = useState(autofilled.priorities.join(", "));
+  const [mood, setMood] = useState(autofilled.mood);
+  const [device, setDevice] = useState<DeviceTarget>(autofilled.device);
+  const [constraints, setConstraints] = useState(autofilled.constraints);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,8 +66,26 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Section auto-détectée */}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Audit notes */}
+      <Card className="bg-accent/5 border-accent/30">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="w-4 h-4 text-accent" />
+          <h3 className="text-sm font-semibold text-accent">Audit automatique</h3>
+        </div>
+        <ul className="space-y-1">
+          {audit.auditNotes.map((note, i) => (
+            <li key={i} className="text-xs text-text-secondary">{note}</li>
+          ))}
+        </ul>
+        {audit.targetUrl && (
+          <p className="text-xs text-text-muted mt-2">
+            URL prod : <a href={audit.targetUrl} target="_blank" rel="noopener noreferrer" className="text-accent underline">{audit.targetUrl}</a>
+          </p>
+        )}
+      </Card>
+
+      {/* Section d\u00e9tect\u00e9 */}
       <Card>
         <h3 className="text-sm font-semibold mb-4 text-text-secondary uppercase tracking-wider">
           D&eacute;tect&eacute; automatiquement
@@ -76,7 +98,7 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
             value={projectType}
             onChange={(e) => setProjectType((e.target as HTMLSelectElement).value as ProjectType)}
           />
-          <Input label="Secteur" value={sector} onChange={(e) => setSector(e.target.value)} placeholder="ex: Recettes cuisine" />
+          <Input label="Secteur" value={sector} onChange={(e) => setSector(e.target.value)} />
           <div>
             <span className="block text-xs text-text-secondary mb-1.5">Stack</span>
             <div className="flex flex-wrap gap-1.5">
@@ -89,7 +111,7 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
 
         {scan.pages.length > 0 && (
           <div className="mt-4">
-            <span className="block text-xs text-text-secondary mb-2">Pages d&eacute;tect&eacute;es</span>
+            <span className="block text-xs text-text-secondary mb-2">Pages d&eacute;tect&eacute;es ({scan.pages.length})</span>
             <div className="flex flex-wrap gap-2">
               {scan.pages.map((p) => (
                 <Checkbox
@@ -109,7 +131,7 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
 
         {scan.components.length > 0 && (
           <div className="mt-4">
-            <span className="block text-xs text-text-secondary mb-2">Composants</span>
+            <span className="block text-xs text-text-secondary mb-2">Composants ({scan.components.length})</span>
             <div className="flex flex-wrap gap-1.5">
               {scan.components.slice(0, 20).map((c) => (
                 <Badge key={c}>{c}</Badge>
@@ -123,10 +145,10 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
 
         {Object.keys(scan.tokens).length > 0 && (
           <div className="mt-4">
-            <span className="block text-xs text-text-secondary mb-2">Tokens CSS</span>
+            <span className="block text-xs text-text-secondary mb-2">Tokens CSS ({Object.keys(scan.tokens).length})</span>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(scan.tokens).slice(0, 12).map(([key, val]) => (
-                <div key={key} className="flex items-center gap-1.5">
+              {Object.entries(scan.tokens).slice(0, 16).map(([key, val]) => (
+                <div key={key} className="flex items-center gap-1.5" title={`${key}: ${val}`}>
                   {val.startsWith("#") && (
                     <span className="w-4 h-4 rounded border border-border" style={{ background: val }} />
                   )}
@@ -138,16 +160,24 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
         )}
       </Card>
 
-      {/* Section Paul */}
+      {/* Section Paul (pr\u00e9-rempli) */}
       <Card>
-        <h3 className="text-sm font-semibold mb-4 text-text-secondary uppercase tracking-wider">
-          Compl&eacute;ter le brief
-        </h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-4 h-4 text-accent" />
+          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+            Brief pr&eacute;-rempli &mdash; modifiable
+          </h3>
+        </div>
         <div className="space-y-4">
-          <Textarea label="Audience cible" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Jeunes adultes 25-35 qui cuisinent..." />
-          <Input label="Vision en 1 phrase" value={vision} onChange={(e) => setVision(e.target.value)} placeholder="L'app cuisine qui donne envie de cuisiner" />
-          <Input label="Fonctionnalit&eacute;s prioritaires (s&eacute;par&eacute;es par virgule)" value={priorities} onChange={(e) => setPriorities(e.target.value)} placeholder="UX page recette, Mode cuisson, Meal planning" />
-          <Input label="Mood / ambiance" value={mood} onChange={(e) => setMood(e.target.value)} placeholder="Chaleureux, app\u00e9tissant, simple" />
+          <Textarea label="Audience cible" value={audience} onChange={(e) => setAudience(e.target.value)} rows={2} />
+          <Input label="Vision en 1 phrase" value={vision} onChange={(e) => setVision(e.target.value)} />
+          <Textarea
+            label="Fonctionnalit&eacute;s prioritaires (s&eacute;par&eacute;es par virgule)"
+            value={priorities}
+            onChange={(e) => setPriorities(e.target.value)}
+            rows={2}
+          />
+          <Input label="Mood / ambiance" value={mood} onChange={(e) => setMood(e.target.value)} />
 
           <div>
             <span className="block text-xs text-text-secondary mb-1.5">Device prioritaire</span>
@@ -168,7 +198,7 @@ export function BriefForm({ scan, onSubmit, loading }: Props) {
             </div>
           </div>
 
-          <Textarea label="Contraintes sp&eacute;ciales" value={constraints} onChange={(e) => setConstraints(e.target.value)} placeholder="Pas de vid\u00e9os, images statiques uniquement..." />
+          <Textarea label="Contraintes sp&eacute;ciales" value={constraints} onChange={(e) => setConstraints(e.target.value)} rows={2} />
         </div>
       </Card>
 

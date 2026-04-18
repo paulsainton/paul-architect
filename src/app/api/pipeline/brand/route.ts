@@ -15,15 +15,11 @@ export async function POST(request: NextRequest) {
 
   setTunnelStatus(runId, 4, "active");
 
-  const options = await generateBrandOptions(tokens, brief, (option, status) => {
-    if (status === "generating") {
-      emitSSE(runId, "brand:generating", { option });
-    } else {
-      emitSSE(runId, "brand:preview", { option });
-    }
+  const options = await generateBrandOptions(tokens, brief, (option, status, data) => {
+    emitSSE(runId, `brand:${status}`, { option, ...(data || {}) });
   });
 
-  emitSSE(runId, "brand:complete", { count: options.length });
+  emitSSE(runId, "brand:complete", { count: options.length, options });
 
   return NextResponse.json(options);
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Globe, BookOpen, ArrowRight } from "lucide-react";
+import { Loader2, Globe, ArrowRight, ArrowLeft, Search } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,10 +62,16 @@ export default function InspirationsPage() {
   }
 
   return (
-    <div className="px-6 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-lg font-semibold">Inspirations</h2>
-        <Badge variant="accent">T2</Badge>
+    <div className="px-6 py-8 pb-24">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Search className="w-5 h-5 text-tunnel-2" />
+          <h2 className="text-lg font-semibold">Inspirations</h2>
+          <Badge variant="accent">T2</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/pipeline/${runId}/brief`)}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Brief
+        </Button>
       </div>
 
       <Tabs
@@ -123,6 +129,7 @@ export default function InspirationsPage() {
               maxSelection={5}
               onToggle={toggleInspiration}
               onZoom={setPreviewUrl}
+              defaultSector={brief?.project.sector}
             />
           )
         }

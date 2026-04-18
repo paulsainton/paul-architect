@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowRight, Brain } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Brain } from "lucide-react";
 import { PersonaPanel } from "@/components/pipeline/persona-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -84,10 +84,15 @@ export default function AnalysisPage() {
 
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Brain className="w-5 h-5 text-tunnel-5" />
-        <h2 className="text-lg font-semibold">Analyse multi-persona</h2>
-        <Badge variant="accent">T5</Badge>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Brain className="w-5 h-5 text-tunnel-5" />
+          <h2 className="text-lg font-semibold">Analyse multi-persona</h2>
+          <Badge variant="accent">T5</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/pipeline/${runId}/brand`)}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Identit&eacute;
+        </Button>
       </div>
 
       <p className="text-sm text-text-muted mb-6">

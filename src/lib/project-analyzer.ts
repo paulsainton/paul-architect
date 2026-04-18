@@ -107,13 +107,29 @@ export function scanProject(projectPath: string): ProjectScan {
     }
   }
 
-  // 6. Features from CLAUDE.md
+  // 6. Features from CLAUDE.md \u2014 chercher les sections Features/Fonctionnalit\u00e9s uniquement
   const features: string[] = [];
-  const featureMatch = claudeMd.match(/(?:features?|fonctionnalit)[^]*?(?:\n(?:[-*])\s+(.+))+/gi);
-  if (featureMatch) {
-    for (const block of featureMatch) {
-      const items = block.matchAll(/[-*]\s+(.+)/g);
-      for (const item of items) features.push(item[1].trim());
+  const lines = claudeMd.split("\n");
+  let inFeatureSection = false;
+  const featureHeadingRegex = /^#{1,3}.*\b(feature|fonctionnalit|principales|vision|mission)\b/i;
+  const excludeRegex = /\b(login|credentials|cookie|middleware|fichiers? cl|port|stack|auth)/i;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (featureHeadingRegex.test(line)) {
+      inFeatureSection = true;
+      continue;
+    }
+    // Nouveau heading = fin de section
+    if (inFeatureSection && /^#{1,3}\s+/.test(line) && !featureHeadingRegex.test(line)) {
+      inFeatureSection = false;
+      continue;
+    }
+    if (inFeatureSection) {
+      const m = line.match(/^[-*]\s+(.{5,120})$/);
+      if (m && !excludeRegex.test(m[1])) {
+        features.push(m[1].trim().replace(/\*\*/g, ""));
+      }
     }
   }
 

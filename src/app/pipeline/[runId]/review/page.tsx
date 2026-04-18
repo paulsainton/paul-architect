@@ -38,10 +38,18 @@ export default function ReviewPage() {
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <CheckCircle className="w-5 h-5 text-tunnel-8" />
-        <h2 className="text-lg font-semibold">QA &amp; Deploy</h2>
-        <Badge variant="accent">T8</Badge>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-tunnel-8" />
+          <h2 className="text-lg font-semibold">QA &amp; Deploy</h2>
+          <Badge variant="accent">T8</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => {
+          const router = (window as unknown as { location: { pathname: string } });
+          window.history.back();
+        }}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour
+        </Button>
       </div>
 
       {loading && !score ? (

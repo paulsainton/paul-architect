@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowRight, Image as ImageIcon } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { MaquetteComparison } from "@/components/pipeline/maquette-comparison";
 import { PreviewModal } from "@/components/pipeline/preview-modal";
 import { Button } from "@/components/ui/button";
@@ -74,11 +74,16 @@ export default function MaquettesPage() {
 
   return (
     <div className="px-6 py-8 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <ImageIcon className="w-5 h-5 text-tunnel-7" />
-        <h2 className="text-lg font-semibold">Maquettes Stitch</h2>
-        <Badge variant="accent">T7</Badge>
-        {loading && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <ImageIcon className="w-5 h-5 text-tunnel-7" />
+          <h2 className="text-lg font-semibold">Maquettes Stitch</h2>
+          <Badge variant="accent">T7</Badge>
+          {loading && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/pipeline/${runId}/analysis`)}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Analyse
+        </Button>
       </div>
 
       <p className="text-sm text-text-muted mb-6">

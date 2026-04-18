@@ -20,11 +20,12 @@ interface Props {
   maxSelection: number;
   onToggle: (item: Inspiration) => void;
   onZoom: (imageUrl: string) => void;
+  defaultSector?: string;
 }
 
-export function BenchExplorer({ selected, maxSelection, onToggle, onZoom }: Props) {
+export function BenchExplorer({ selected, maxSelection, onToggle, onZoom, defaultSector }: Props) {
   const [filters, setFilters] = useState<Filters>({
-    category: "", subcategory: "", sector: "", style: "", device: "", search: "",
+    category: "", subcategory: "", sector: defaultSector || "", style: "", device: "", search: "",
   });
   const [items, setItems] = useState<Inspiration[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,7 @@ export function BenchExplorer({ selected, maxSelection, onToggle, onZoom }: Prop
     if (filters.style) params.set("style", filters.style);
     if (filters.device) params.set("device", filters.device);
     if (filters.search) params.set("search", filters.search);
+    params.set("limit", "40");
 
     try {
       const res = await fetch(`/api/pipeline/inspirations?${params}`);
@@ -65,7 +67,7 @@ export function BenchExplorer({ selected, maxSelection, onToggle, onZoom }: Prop
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-48" />
+            <Skeleton key={i} className="h-72" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -78,14 +80,18 @@ export function BenchExplorer({ selected, maxSelection, onToggle, onZoom }: Prop
               title={item.title}
               url={item.url}
               imageUrl={item.imageUrl}
+              mediaUrls={item.mediaUrls}
               tags={item.tags}
+              visualStyles={item.visualStyles}
+              colorScheme={item.colorScheme}
+              devices={item.devices}
               score={item.score}
               checked={selectedIds.has(item.id)}
               onToggle={() => {
                 if (!selectedIds.has(item.id) && !canSelect) return;
                 onToggle(item);
               }}
-              onZoom={() => item.imageUrl && onZoom(item.imageUrl)}
+              onZoom={onZoom}
             />
           ))}
         </div>

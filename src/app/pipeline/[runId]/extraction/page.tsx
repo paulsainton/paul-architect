@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowRight, Zap } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Zap } from "lucide-react";
 import { ExtractionTimeline, type ExtractionStep } from "@/components/pipeline/extraction-timeline";
 import { TokenViewer } from "@/components/pipeline/token-viewer";
 import { Button } from "@/components/ui/button";
@@ -98,10 +98,16 @@ export default function ExtractionPage() {
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-lg font-semibold">Clone Architect</h2>
-        <Badge variant="accent">T3</Badge>
-        {running && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Zap className="w-5 h-5 text-tunnel-3" />
+          <h2 className="text-lg font-semibold">Clone Architect</h2>
+          <Badge variant="accent">T3</Badge>
+          {running && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/pipeline/${runId}/inspirations`)}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Inspirations
+        </Button>
       </div>
 
       <p className="text-sm text-text-muted mb-6">

@@ -2,12 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowRight, Palette } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Palette, CheckCircle } from "lucide-react";
 import { BrandOptionCard } from "@/components/pipeline/brand-option";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { usePipelineStore } from "@/stores/pipeline-store";
 import type { BrandOption, Brand } from "@/types/pipeline";
+
+interface ProgressStep {
+  label: string;
+  status: "pending" | "active" | "done";
+  detail?: string;
+}
 
 export default function BrandPage() {
   const params = useParams();
@@ -16,14 +23,50 @@ export default function BrandPage() {
   const brief = usePipelineStore((s) => s.brief);
   const setBrand = usePipelineStore((s) => s.setBrand);
   const run = usePipelineStore((s) => s.run);
+  const events = usePipelineStore((s) => s.events);
 
   const [options, setOptions] = useState<BrandOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | "C" | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([
+    { label: "Analyse des tokens extraits", status: "pending" },
+    { label: "Option A — Palette dominante", status: "pending" },
+    { label: "Option B — Harmonisation", status: "pending" },
+    { label: "Option C — Contraste compl\u00e9mentaire", status: "pending" },
+  ]);
   const startedRef = useRef(false);
 
-  // Génération automatique — une seule fois
+  // SSE events pour la progression
+  useEffect(() => {
+    for (const event of events) {
+      if (event.type === "brand:analyzing-tokens") {
+        setProgressSteps((prev) => prev.map((s, i) =>
+          i === 0 ? { ...s, status: "active" as const, detail: `${event.data.colorsFound} couleurs, ${event.data.fontsFound} fonts, mood ${event.data.detectedMood}` } : s
+        ));
+      }
+      if (event.type === "brand:generating") {
+        const optIdx = { A: 1, B: 2, C: 3 }[event.data.option as "A" | "B" | "C"];
+        if (optIdx !== undefined) {
+          setProgressSteps((prev) => prev.map((s, i) =>
+            i === 0 ? { ...s, status: "done" as const }
+            : i === optIdx ? { ...s, status: "active" as const, detail: event.data.label as string }
+            : s
+          ));
+        }
+      }
+      if (event.type === "brand:ready") {
+        const optIdx = { A: 1, B: 2, C: 3 }[event.data.option as "A" | "B" | "C"];
+        if (optIdx !== undefined) {
+          setProgressSteps((prev) => prev.map((s, i) =>
+            i === optIdx ? { ...s, status: "done" as const } : s
+          ));
+        }
+      }
+    }
+  }, [events]);
+
+  // G\u00e9n\u00e9ration automatique — une seule fois
   useEffect(() => {
     if (startedRef.current || loading || options.length > 0 || !brief || !run?.mergedTokens) return;
     startedRef.current = true;
@@ -68,22 +111,46 @@ export default function BrandPage() {
 
   return (
     <div className="px-6 py-8 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Palette className="w-5 h-5 text-tunnel-4" />
-        <h2 className="text-lg font-semibold">Identit&eacute; visuelle</h2>
-        <Badge variant="accent">T4</Badge>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Palette className="w-5 h-5 text-tunnel-4" />
+          <h2 className="text-lg font-semibold">Identit&eacute; visuelle</h2>
+          <Badge variant="accent">T4</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/pipeline/${runId}/extraction`)}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Clone
+        </Button>
       </div>
 
       <p className="text-sm text-text-muted mb-6">
-        3 propositions g&eacute;n&eacute;r&eacute;es par Stitch SDK. S&eacute;lectionnez celle qui correspond le mieux au projet.
+        3 propositions g&eacute;n&eacute;r&eacute;es depuis les tokens extraits par Clone Architect. Choisissez celle qui correspond au projet.
       </p>
 
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-text-muted py-12 justify-center">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          G&eacute;n&eacute;ration des propositions via Stitch SDK...
-        </div>
-      ) : (
+      {/* Progress steps pendant g\u00e9n\u00e9ration */}
+      {loading && options.length === 0 && (
+        <Card className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Loader2 className="w-4 h-4 animate-spin text-accent" />
+            <span className="text-sm font-medium">G&eacute;n&eacute;ration des propositions...</span>
+            <span className="text-xs text-text-muted ml-auto">~3 secondes</span>
+          </div>
+          <div className="space-y-2">
+            {progressSteps.map((step, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                {step.status === "active" && <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />}
+                {step.status === "done" && <CheckCircle className="w-3.5 h-3.5 text-status-success" />}
+                {step.status === "pending" && <div className="w-3.5 h-3.5 rounded-full border-2 border-border" />}
+                <span className={step.status === "pending" ? "text-text-muted" : "text-text-secondary"}>
+                  {step.label}
+                </span>
+                {step.detail && <span className="text-xs text-text-muted ml-auto">{step.detail}</span>}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {options.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {options.map((opt) => (
             <BrandOptionCard

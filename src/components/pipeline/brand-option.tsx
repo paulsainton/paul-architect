@@ -10,13 +10,23 @@ interface Props {
   onSelect: () => void;
 }
 
+const LABELS: Record<string, string> = {
+  A: "Palette dominante",
+  B: "Harmonisation",
+  C: "Contraste compl\u00e9mentaire",
+};
+
 export function BrandOptionCard({ option, selected, onSelect }: Props) {
   const { palette, typography } = option;
 
+  // Preview HTML rendu en direct avec la palette
   return (
-    <Card selected={selected} hover onClick={onSelect} className="cursor-pointer">
-      <div className="flex items-center justify-between mb-3">
-        <Badge variant={selected ? "accent" : "default"}>Option {option.option}</Badge>
+    <Card selected={selected} hover onClick={onSelect} className="cursor-pointer overflow-hidden p-0">
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <div>
+          <Badge variant={selected ? "accent" : "default"}>Option {option.option}</Badge>
+          <p className="text-xs text-text-muted mt-1">{LABELS[option.option]}</p>
+        </div>
         <input
           type="radio"
           checked={selected}
@@ -25,38 +35,92 @@ export function BrandOptionCard({ option, selected, onSelect }: Props) {
         />
       </div>
 
-      {/* Preview image */}
-      {option.imageUrl && (
-        <div className="mb-3 rounded-lg overflow-hidden bg-bg-surface aspect-video">
-          <img src={option.imageUrl} alt={`Option ${option.option}`} className="w-full h-full object-cover" />
+      {/* Preview rendu en CSS direct */}
+      <div
+        className="p-5"
+        style={{
+          background: palette.background,
+          color: palette.text,
+          fontFamily: typography.body,
+        }}
+      >
+        <div
+          className="mb-3"
+          style={{
+            fontFamily: typography.heading,
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            color: palette.text,
+          }}
+        >
+          Aa Heading
         </div>
-      )}
+        <p style={{ color: palette.textSecondary, fontSize: "0.85rem", marginBottom: "1rem" }}>
+          Body text sample avec la palette appliqu\u00e9e
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <span
+            style={{
+              background: palette.primary,
+              color: "#fff",
+              padding: "6px 14px",
+              borderRadius: option.borderRadius,
+              fontSize: "12px",
+              fontWeight: 600,
+            }}
+          >
+            Primary
+          </span>
+          <span
+            style={{
+              background: palette.secondary,
+              color: "#fff",
+              padding: "6px 14px",
+              borderRadius: option.borderRadius,
+              fontSize: "12px",
+              fontWeight: 600,
+            }}
+          >
+            Secondary
+          </span>
+          <span
+            style={{
+              background: palette.accent,
+              color: "#fff",
+              padding: "6px 14px",
+              borderRadius: option.borderRadius,
+              fontSize: "12px",
+              fontWeight: 600,
+            }}
+          >
+            Accent
+          </span>
+        </div>
 
-      {/* Palette */}
-      <div className="mb-3">
-        <span className="text-[10px] text-text-muted uppercase tracking-wider">Palette</span>
-        <div className="flex gap-1 mt-1">
+        <div
+          className="mt-3 p-3 text-xs"
+          style={{
+            background: palette.surface,
+            color: palette.text,
+            borderRadius: option.borderRadius,
+            border: `1px solid ${palette.textSecondary}22`,
+          }}
+        >
+          Surface card — {typography.heading} / {typography.body}
+        </div>
+      </div>
+
+      {/* Palette complete en bas */}
+      <div className="p-3 border-t border-border">
+        <div className="flex gap-1">
           {Object.entries(palette).map(([key, val]) => (
-            <div key={key} className="group relative flex-1">
-              <div className="h-8 rounded" style={{ background: val }} title={`${key}: ${val}`} />
-              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-mono text-text-muted opacity-0 group-hover:opacity-100 whitespace-nowrap">
+            <div key={key} className="group relative flex-1" title={`${key}: ${val}`}>
+              <div className="h-6 rounded" style={{ background: val }} />
+              <span className="hidden group-hover:block absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-bg-surface px-1.5 py-0.5 rounded whitespace-nowrap z-10">
                 {val}
               </span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Typo */}
-      <div className="mt-5">
-        <span className="text-[10px] text-text-muted uppercase tracking-wider">Typographie</span>
-        <div className="mt-1 space-y-1">
-          <p className="text-sm" style={{ fontFamily: typography.heading, color: palette.text }}>
-            <strong>Heading:</strong> {typography.heading}
-          </p>
-          <p className="text-xs" style={{ fontFamily: typography.body, color: palette.textSecondary }}>
-            Body: {typography.body}
-          </p>
         </div>
       </div>
     </Card>

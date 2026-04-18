@@ -2,20 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Rocket, Loader2 } from "lucide-react";
-import { ProjectSelector } from "@/components/pipeline/project-selector";
+import { Rocket, Loader2, Sparkles } from "lucide-react";
+import { ProjectSelector, type Project } from "@/components/pipeline/project-selector";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { usePipelineStore } from "@/stores/pipeline-store";
-
-interface Project {
-  slug: string;
-  name: string;
-  path: string;
-  hasClaudeMd: boolean;
-  type?: string;
-  sector?: string;
-}
 
 export default function NewPipelinePage() {
   const router = useRouter();
@@ -41,34 +31,40 @@ export default function NewPipelinePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold mb-2">Nouveau pipeline</h1>
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="w-5 h-5 text-accent" />
+          <h1 className="text-xl font-bold">Nouveau pipeline</h1>
+        </div>
         <p className="text-sm text-text-muted">
-          S&eacute;lectionnez un projet pour lancer le pipeline de design complet.
+          S&eacute;lectionnez un projet. Paul Architect va auditer le code, chercher des r&eacute;f&eacute;rences,
+          extraire les tokens et pr&eacute;parer le brief.
         </p>
       </div>
 
-      <Card className="mb-6">
-        <label className="block text-xs text-text-secondary mb-2">Projet cible</label>
+      <div className="mb-6">
         <ProjectSelector onSelect={setSelected} selected={selected} />
+      </div>
 
-        {selected && (
-          <div className="mt-4 p-3 rounded-lg bg-bg-surface text-xs text-text-secondary space-y-1">
-            <p><strong>Chemin :</strong> {selected.path}</p>
-            {selected.type && <p><strong>Stack :</strong> {selected.type}</p>}
-            {selected.sector && <p><strong>Secteur :</strong> {selected.sector}</p>}
+      {selected && (
+        <div className="sticky bottom-0 bg-bg-primary/90 backdrop-blur-sm border-t border-border pt-4 -mx-6 px-6 pb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-text-muted">Projet s&eacute;lectionn&eacute;</p>
+              <p className="text-sm font-medium text-text-primary">{selected.name}</p>
+              <p className="text-[11px] text-text-muted font-mono">{selected.path}</p>
+            </div>
+            <Button size="lg" disabled={loading} onClick={handleLaunch}>
+              {loading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Lancement...</>
+              ) : (
+                <><Rocket className="w-4 h-4" /> Lancer le pipeline</>
+              )}
+            </Button>
           </div>
-        )}
-      </Card>
-
-      <Button size="lg" disabled={!selected || loading} onClick={handleLaunch} className="w-full">
-        {loading ? (
-          <><Loader2 className="w-4 h-4 animate-spin" /> Lancement...</>
-        ) : (
-          <><Rocket className="w-4 h-4" /> Lancer le pipeline</>
-        )}
-      </Button>
+        </div>
+      )}
     </div>
   );
 }

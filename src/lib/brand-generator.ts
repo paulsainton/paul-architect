@@ -1,173 +1,161 @@
-import type { BrandOption, MergedTokens, Brief } from "@/types/pipeline";
+import type { BrandOption, MergedTokens, Brief, BrandPalette } from "@/types/pipeline";
 
-const STITCH_API = "http://localhost:3012";
+/**
+ * G\u00e9n\u00e8re 3 propositions de brand LOCALEMENT depuis les tokens extraits.
+ * Preview HTML rendu c\u00f4t\u00e9 frontend — rapide, sans co\u00fbt, 100% fiable.
+ * Respecte R16 : pas de g\u00e9n\u00e9ration de design, juste combinaison de tokens extraits.
+ */
 
-interface StitchGenerateResult {
-  projectId: string;
-  imageUrl: string;
-  html: string;
+function darken(hex: string, amount = 0.2): string {
+  const m = hex.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  const r = Math.max(0, Math.floor(((num >> 16) & 0xff) * (1 - amount)));
+  const g = Math.max(0, Math.floor(((num >> 8) & 0xff) * (1 - amount)));
+  const b = Math.max(0, Math.floor((num & 0xff) * (1 - amount)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0").toUpperCase()}`;
 }
 
-async function callStitch(prompt: string, projectName: string): Promise<StitchGenerateResult | null> {
-  try {
-    // 1. Créer ou récupérer un projet Stitch
-    const slug = projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
+function lighten(hex: string, amount = 0.2): string {
+  const m = hex.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  const r = Math.min(255, Math.floor(((num >> 16) & 0xff) + 255 * amount));
+  const g = Math.min(255, Math.floor(((num >> 8) & 0xff) + 255 * amount));
+  const b = Math.min(255, Math.floor((num & 0xff) + 255 * amount));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0").toUpperCase()}`;
+}
 
-    const createProjRes = await fetch(`${STITCH_API}/api/projects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug,
-        name: projectName,
-        type: "webapp",
-        sector: "design",
-        targetAudience: "general",
-        description: prompt.slice(0, 500),
-        features: ["hero", "features", "footer"],
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
+function complementary(hex: string): string {
+  const m = hex.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  const r = 255 - ((num >> 16) & 0xff);
+  const g = 255 - ((num >> 8) & 0xff);
+  const b = 255 - (num & 0xff);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0").toUpperCase()}`;
+}
 
-    // 409 = déjà existe, on peut continuer
-    if (!createProjRes.ok && createProjRes.status !== 409) return null;
+function luminance(hex: string): number {
+  const m = hex.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return 0.5;
+  const num = parseInt(m[1], 16);
+  const r = ((num >> 16) & 0xff) / 255;
+  const g = ((num >> 8) & 0xff) / 255;
+  const b = (num & 0xff) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
 
-    // 2. Lancer le pipeline avec le slug
-    const runRes = await fetch(`${STITCH_API}/api/pipeline/run`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!runRes.ok) return null;
-    const { runId } = await runRes.json();
-    if (!runId) return null;
+function isDark(hex: string): boolean {
+  return luminance(hex) < 0.5;
+}
 
-    // 3. Attendre la fin via stream (max 90s)
-    const deadline = Date.now() + 90_000;
-    let imageUrl = "";
-    let html = "";
+function ensureValidHex(hex: string | undefined, fallback: string): string {
+  if (!hex) return fallback;
+  const clean = hex.startsWith("#") ? hex : `#${hex}`;
+  return /^#[0-9a-f]{6}$/i.test(clean) ? clean.toUpperCase() : fallback;
+}
 
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 3000));
-      const statusRes = await fetch(`${STITCH_API}/api/pipeline/list?runId=${runId}`, {
-        signal: AbortSignal.timeout(5_000),
-      }).catch(() => null);
-      if (!statusRes?.ok) continue;
-      const status = await statusRes.json().catch(() => null);
-      if (status?.imageUrl || status?.preview) {
-        imageUrl = status.imageUrl || status.preview;
-        html = status.html || "";
-        break;
-      }
-      if (status?.status === "completed" || status?.status === "failed") break;
-    }
+function buildPaletteA(colors: string[], isDarkMood: boolean): BrandPalette {
+  // Option A : palette dominante (les couleurs les plus fr\u00e9quentes)
+  const primary = ensureValidHex(colors[0], "#6366F1");
+  const secondary = ensureValidHex(colors[1], darken(primary, 0.15));
+  const accent = ensureValidHex(colors[2], lighten(primary, 0.25));
+  const background = isDarkMood ? "#08090E" : "#FEFAE0";
+  const surface = isDarkMood ? "#10121A" : "#FFFFFF";
+  const text = isDarkMood ? "#F0F0F5" : "#1A1A1A";
+  const textSecondary = isDarkMood ? "#8B8B9E" : "#5A5A5A";
+  return { primary, secondary, accent, background, surface, text, textSecondary };
+}
 
-    return { projectId: slug, imageUrl, html };
-  } catch {
-    return null;
+function buildPaletteB(colors: string[], isDarkMood: boolean): BrandPalette {
+  // Option B : harmonisation des 3 couleurs les plus fr\u00e9quentes
+  const primary = ensureValidHex(colors[0], "#6366F1");
+  const secondary = ensureValidHex(colors[1], lighten(primary, 0.15));
+  const accent = ensureValidHex(colors[3] || colors[2], "#F59E0B");
+  const background = isDarkMood ? darken(primary, 0.85) : lighten(primary, 0.95);
+  const surface = isDarkMood ? darken(primary, 0.75) : "#FFFFFF";
+  const text = isDarkMood ? "#F5F5F7" : darken(primary, 0.7);
+  const textSecondary = isDarkMood ? "#9CA3AF" : "#6B7280";
+  return { primary, secondary, accent, background, surface, text, textSecondary };
+}
+
+function buildPaletteC(colors: string[], isDarkMood: boolean): BrandPalette {
+  // Option C : contraste — compl\u00e9mentaire
+  const base = ensureValidHex(colors[0], "#6366F1");
+  const primary = complementary(base);
+  const secondary = ensureValidHex(colors[1], base);
+  const accent = ensureValidHex(colors[2], "#FF6B35");
+  const background = isDarkMood ? "#0A0A0F" : "#FAFAFA";
+  const surface = isDarkMood ? "#141420" : "#F5F5F7";
+  const text = isDarkMood ? "#FFFFFF" : "#0F0F14";
+  const textSecondary = isDarkMood ? "#A0A0B8" : "#4A4A5A";
+  return { primary, secondary, accent, background, surface, text, textSecondary };
+}
+
+function chooseFonts(fonts: string[], brief: Brief): { heading: string; body: string } {
+  // Filtrer les fonts valides
+  const valid = fonts.filter((f) => f && f.length > 1 && !/serif|sans-serif|monospace|inherit/i.test(f.trim()));
+  const mood = brief.paul.mood?.toLowerCase() || "";
+
+  const headingCandidates = valid.length > 0 ? valid : ["Inter"];
+  const bodyCandidates = valid.length > 1 ? valid.slice(1) : valid.length > 0 ? valid : ["Inter"];
+
+  // Si mood "\u00e9l\u00e9gant" ou "chaleureux" → privil\u00e9gier une serif heading
+  let heading = headingCandidates[0];
+  if (/\u00e9l\u00e9gant|chaleureux|premium|luxe/i.test(mood)) {
+    const serif = valid.find((f) => /serif|playfair|lora|georgia|merriweather/i.test(f));
+    if (serif) heading = serif;
   }
-}
-
-function extractTokensFromHtml(html: string): { palette: BrandOption["palette"]; typography: BrandOption["typography"] } {
-  const colors = Array.from(html.matchAll(/#([0-9a-fA-F]{6})\b/g)).map((m) => `#${m[1]}`);
-  const fonts = Array.from(html.matchAll(/font-family:\s*["']?([^"';,}]+)/gi)).map((m) => m[1].trim());
-  const uniqueColors = [...new Set(colors)];
 
   return {
-    palette: {
-      primary: uniqueColors[0] || "#6366F1",
-      secondary: uniqueColors[1] || "#4ECDC4",
-      accent: uniqueColors[2] || "#FFE66D",
-      background: uniqueColors[3] || "#FEFAE0",
-      surface: uniqueColors[4] || "#FFFFFF",
-      text: uniqueColors[5] || "#1A1A1A",
-      textSecondary: uniqueColors[6] || "#5A5A5A",
-    },
-    typography: {
-      heading: fonts[0] || "Inter",
-      body: fonts[1] || fonts[0] || "Inter",
-    },
+    heading: heading.replace(/["']/g, "").trim() || "Inter",
+    body: bodyCandidates[0].replace(/["']/g, "").trim() || "Inter",
   };
 }
 
 export async function generateBrandOptions(
   tokens: MergedTokens,
   brief: Brief,
-  onProgress: (option: string, status: string) => void
+  onProgress: (option: string, status: string, data?: Record<string, unknown>) => void
 ): Promise<BrandOption[]> {
-  const dominantColors = tokens.colors.slice(0, 5).map((c) => c.hex);
-  const dominantFonts = tokens.fonts.slice(0, 3).map((f) => f.family);
+  const dominantColors = tokens.colors.slice(0, 8).map((c) => c.hex);
+  const dominantFonts = tokens.fonts.slice(0, 5).map((f) => f.family);
+  const mood = brief.paul.mood?.toLowerCase() || "";
+  const isDarkMood = /dark|sombre|noir|tech|cyberpunk|minimaliste/i.test(mood);
+  const typography = chooseFonts(dominantFonts, brief);
 
-  const prompts: { option: "A" | "B" | "C"; prompt: string }[] = [
-    {
-      option: "A",
-      prompt: `Cr\u00e9e une identit\u00e9 visuelle pour "${brief.project.name}" (${brief.project.type}, secteur: ${brief.project.sector}).
-Ambiance: ${brief.paul.mood || "moderne et professionnel"}.
-Base-toi sur la palette dominante: ${dominantColors.join(", ")}.
-Typographie inspir\u00e9e de: ${dominantFonts.join(", ")}.
-Audience: ${brief.paul.audience || "grand public"}.
-G\u00e9n\u00e8re un design complet avec header, hero, features, footer.`,
-    },
-    {
-      option: "B",
-      prompt: `Cr\u00e9e une identit\u00e9 visuelle harmonieuse pour "${brief.project.name}" (${brief.project.type}).
-Harmonise les palettes extraites: ${dominantColors.join(", ")}.
-Style: ${brief.paul.mood || "minimaliste et \u00e9l\u00e9gant"}.
-Device: ${brief.paul.device}.
-G\u00e9n\u00e8re un design qui unifie toutes les inspirations en un style coh\u00e9rent.`,
-    },
-    {
-      option: "C",
-      prompt: `Cr\u00e9e une identit\u00e9 visuelle contrastante pour "${brief.project.name}" (${brief.project.type}).
-Utilise des couleurs compl\u00e9mentaires de: ${dominantColors[0] || "#6366F1"}.
-Style audacieux et diff\u00e9renci\u00e9. Secteur: ${brief.project.sector}.
-G\u00e9n\u00e8re un design qui se d\u00e9marque des concurrents tout en restant professionnel.`,
-    },
+  onProgress("setup", "analyzing-tokens", {
+    colorsFound: dominantColors.length,
+    fontsFound: dominantFonts.length,
+    detectedMood: isDarkMood ? "dark" : "light",
+  });
+  await new Promise((r) => setTimeout(r, 400));
+
+  const options: BrandOption[] = [];
+  const builders: { option: "A" | "B" | "C"; label: string; build: () => BrandPalette }[] = [
+    { option: "A", label: "Palette dominante", build: () => buildPaletteA(dominantColors, isDarkMood) },
+    { option: "B", label: "Harmonisation", build: () => buildPaletteB(dominantColors, isDarkMood) },
+    { option: "C", label: "Contraste", build: () => buildPaletteC(dominantColors, isDarkMood) },
   ];
 
-  const results: BrandOption[] = [];
+  for (const b of builders) {
+    onProgress(b.option, "generating", { label: b.label });
+    await new Promise((r) => setTimeout(r, 600));
 
-  for (const { option, prompt } of prompts) {
-    onProgress(option, "generating");
+    const palette = b.build();
+    const borderRadius = tokens.borderRadius[0] || "12px";
 
-    const stitch = await callStitch(prompt, `${brief.project.name} - Option ${option}`);
-
-    let palette: BrandOption["palette"];
-    let typography: BrandOption["typography"];
-
-    if (stitch?.html) {
-      const extracted = extractTokensFromHtml(stitch.html);
-      palette = extracted.palette;
-      typography = extracted.typography;
-    } else {
-      // Fallback avec les tokens extraits
-      const offset = results.length * 2;
-      palette = {
-        primary: dominantColors[offset] || "#6366F1",
-        secondary: dominantColors[offset + 1] || "#4ECDC4",
-        accent: dominantColors[offset + 2] || "#FFE66D",
-        background: "#FEFAE0",
-        surface: "#FFFFFF",
-        text: "#1A1A1A",
-        textSecondary: "#5A5A5A",
-      };
-      typography = {
-        heading: dominantFonts[0] || "Inter",
-        body: dominantFonts[1] || "Inter",
-      };
-    }
-
-    results.push({
-      option,
+    options.push({
+      option: b.option,
       palette,
       typography,
-      borderRadius: "12px",
-      imageUrl: stitch?.imageUrl,
-      stitchProjectId: stitch?.projectId,
+      borderRadius,
+      // Pas d'imageUrl — le preview se fait en HTML/CSS c\u00f4t\u00e9 client
     });
 
-    onProgress(option, "ready");
+    onProgress(b.option, "ready", { palette, typography });
   }
 
-  return results;
+  return options;
 }

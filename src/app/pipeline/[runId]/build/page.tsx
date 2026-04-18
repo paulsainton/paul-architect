@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowRight, Code } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Code } from "lucide-react";
 import { BuildTimeline, type PageBuildState } from "@/components/pipeline/build-timeline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,11 +88,16 @@ export default function BuildPage() {
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Code className="w-5 h-5 text-tunnel-6" />
-        <h2 className="text-lg font-semibold">G&eacute;n&eacute;ration de code</h2>
-        <Badge variant="accent">T6</Badge>
-        {loading && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Code className="w-5 h-5 text-tunnel-6" />
+          <h2 className="text-lg font-semibold">G&eacute;n&eacute;ration de code</h2>
+          <Badge variant="accent">T6</Badge>
+          {loading && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/pipeline/${runId}/maquettes`)}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Maquettes
+        </Button>
       </div>
 
       <p className="text-sm text-text-muted mb-6">

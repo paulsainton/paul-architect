@@ -62,10 +62,18 @@ export interface Inspiration {
   title: string;
   description?: string;
   imageUrl?: string;
+  thumbnail?: string;
+  mediaUrls?: string[];
   source: "web" | "bench";
   score?: number;
   tags?: string[];
   category?: string;
+  subCategory?: string;
+  visualStyles?: string[];
+  colorScheme?: string;
+  devices?: string[];
+  businessSectors?: string[];
+  keyFeatures?: string[];
   selected: boolean;
 }
 
