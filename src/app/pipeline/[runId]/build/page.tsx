@@ -114,16 +114,14 @@ export default function BuildPage() {
         }
       />
 
-      {done && (
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-text-secondary">
-            {validated}/{pages.length} pages valid&eacute;es
-          </p>
-          <Button onClick={() => router.push(`/pipeline/${runId}/review`)}>
-            Passer au QA <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+      <div className="mt-6 flex items-center justify-between pt-4 border-t border-border">
+        <p className="text-sm text-text-secondary">
+          {done ? `${validated}/${pages.length} pages valid\u00e9es` : "G\u00e9n\u00e9ration code en arri\u00e8re-plan"}
+        </p>
+        <Button onClick={() => router.push(`/pipeline/${runId}/review`)}>
+          Passer au QA <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }

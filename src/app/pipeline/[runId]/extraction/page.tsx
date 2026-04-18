@@ -135,9 +135,20 @@ export default function ExtractionPage() {
         </Button>
       </div>
 
-      <p className="text-sm text-text-muted mb-6">
-        Extraction des tokens, layouts et screenshots de chaque inspiration s&eacute;lectionn&eacute;e.
-      </p>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-sm text-text-muted">
+          Extraction des tokens, layouts et screenshots de chaque inspiration s&eacute;lectionn&eacute;e. Prend 1-3 min par URL.
+        </p>
+        {running && !done && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => router.push(`/pipeline/${runId}/brand`)}
+          >
+            Passer &mdash; l&apos;extraction continue en arri&egrave;re-plan <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        )}
+      </div>
 
       <ExtractionTimeline steps={steps} />
 
@@ -154,6 +165,18 @@ export default function ExtractionPage() {
               Continuer <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Bouton skip toujours visible en bas si pas encore done */}
+      {!done && selectedInspirations.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-border flex items-center justify-between">
+          <p className="text-xs text-text-muted">
+            L&apos;extraction s&apos;effectue en arri&egrave;re-plan. Tu peux passer &agrave; l&apos;&eacute;tape suivante, les tokens seront r&eacute;cup&eacute;r&eacute;s d&egrave;s qu&apos;ils sont pr&ecirc;ts.
+          </p>
+          <Button onClick={() => router.push(`/pipeline/${runId}/brand`)}>
+            Passer &agrave; l&apos;identit&eacute; <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
       )}
 

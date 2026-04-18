@@ -109,16 +109,14 @@ export default function MaquettesPage() {
 
       <PreviewModal imageUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
 
-      {done && (
-        <div className="flex items-center justify-between mt-6">
-          <p className="text-sm text-text-secondary">
-            {approved}/{total} maquettes approuv&eacute;es
-          </p>
-          <Button onClick={() => router.push(`/pipeline/${runId}/build`)}>
-            Passer au code <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+        <p className="text-sm text-text-secondary">
+          {done ? `${approved}/${total} maquettes approuv\u00e9es` : "G\u00e9n\u00e9ration en cours en arri\u00e8re-plan"}
+        </p>
+        <Button onClick={() => router.push(`/pipeline/${runId}/build`)}>
+          Passer au code <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }

@@ -118,13 +118,14 @@ export default function AnalysisPage() {
         </Card>
       )}
 
-      {done && (
-        <div className="mt-6 flex justify-end">
-          <Button onClick={() => router.push(`/pipeline/${runId}/maquettes`)}>
-            Continuer vers les maquettes <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+      <div className="mt-6 flex items-center justify-between pt-4 border-t border-border">
+        <p className="text-xs text-text-muted">
+          {done ? "Analyse termin\u00e9e. Tu peux passer aux maquettes." : "L'analyse continue en arri\u00e8re-plan."}
+        </p>
+        <Button onClick={() => router.push(`/pipeline/${runId}/maquettes`)}>
+          {done ? "Continuer vers les maquettes" : "Passer aux maquettes"} <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }
