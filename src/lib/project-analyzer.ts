@@ -50,7 +50,9 @@ export function scanProject(projectPath: string): ProjectScan {
   if (pkgRaw) {
     try {
       const pkg = JSON.parse(pkgRaw);
-      if (pkg.name) name = pkg.name;
+      // package.json name est souvent en kebab-case minuscule \u2014 ne l'utiliser que
+      // s'il est significativement diff\u00e9rent du slug (ex: "my-app" vs slug "app-miam")
+      if (pkg.name && !/^[a-z0-9-]+$/.test(pkg.name)) name = pkg.name;
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       if (deps.next) stack.framework = `Next.js ${deps.next.replace(/[\^~]/g, "")}`;
       else if (deps.react) stack.framework = `React ${deps.react.replace(/[\^~]/g, "")}`;

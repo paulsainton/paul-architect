@@ -52,14 +52,16 @@ function inferProjectType(empire: EmpireProject | null, scan: ProjectScan): Proj
   const raw = (empire?.type || "").toLowerCase();
   if (raw === "saas") return "saas";
   if (raw === "ecommerce" || raw === "ecom" || raw === "e-commerce") return "ecommerce";
-  if (raw === "mobile") return "mobile";
+  if (raw.includes("mobile") || raw.includes("app")) return "mobile";
   if (raw === "landing" || raw === "site") return "landing";
   if (raw === "dashboard") return "dashboard";
 
   const stack = (scan.stack.framework + " " + scan.stack.ui).toLowerCase();
-  if (stack.includes("react native") || stack.includes("flutter")) return "mobile";
+  const empireStack = (empire?.tech_stack || "").toLowerCase();
+  if (stack.includes("react native") || stack.includes("flutter") || stack.includes("expo")
+    || empireStack.includes("react native") || empireStack.includes("expo")) return "mobile";
   if (scan.pages.length > 8) return "webapp";
-  if (scan.pages.length <= 3) return "landing";
+  if (scan.pages.length <= 3 && scan.pages.length > 0) return "landing";
   return "webapp";
 }
 

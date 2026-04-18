@@ -3,13 +3,25 @@ import { generatePageCode, type CodeGenContext } from "@/lib/code-generator";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import { existsSync } from "fs";
 
-function resolveProjectPath(slug: string): string | null {
-  const direct = `/opt/${slug}`;
-  if (existsSync(direct)) return direct;
+const EMPIRE_API = "http://localhost:3060";
+
+async function resolveProjectPath(slug: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${EMPIRE_API}/api/projects`, { signal: AbortSignal.timeout(4_000) });
+    if (res.ok) {
+      const projects = await res.json();
+      const found = Array.isArray(projects) ? projects.find((p: { id: string; project_path?: string }) => p.id === slug) : null;
+      if (found?.project_path && existsSync(found.project_path)) return found.project_path;
+    }
+  } catch { /* fallback */ }
+  const candidates = [
+    `/opt/${slug}`, `/var/www/${slug}`, `/var/www/app-${slug}`,
+    `/home/paul/projects/${slug}`, `/opt/${slug}-refonte`, `/opt/app-${slug}`,
+  ];
+  for (const path of candidates) if (existsSync(path)) return path;
   const aliases: Record<string, string> = {
-    miam: "/opt/dietplus",
-    "ecom-dropship": "/opt/ecom-mygong",
-    matthias: "/opt/matthias-website",
+    "ecom-dropship": "/opt/ecom-mygong", matthias: "/opt/matthias-site",
+    dimension: "/opt/site-web-dimension-refonte",
   };
   if (aliases[slug] && existsSync(aliases[slug])) return aliases[slug];
   return null;
@@ -29,7 +41,7 @@ export async function POST(request: NextRequest) {
   // Injecter le projectPath + inspirations depuis le run state
   const enrichedContext: CodeGenContext = {
     ...context,
-    projectPath: resolveProjectPath(run.projectSlug) || undefined,
+    projectPath: (await resolveProjectPath(run.projectSlug)) || undefined,
     inspirations: run.inspirations,
   };
 
