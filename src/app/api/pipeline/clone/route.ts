@@ -3,6 +3,7 @@ import { runCloneArchitect } from "@/lib/clone-runner";
 import { mergeTokens } from "@/lib/token-merger";
 import { getRun, emitSSE, setTunnelStatus, updateRun } from "@/lib/pipeline-state";
 import type { ExtractionResult } from "@/types/pipeline";
+import { log } from "@/lib/logger";
 
 export const maxDuration = 600; // 10 min max pour cette route (Next.js 16)
 
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   // Fire-and-forget : ne pas await pour ne pas timeout la route
   runClonesBackground(runId, urls).catch((err) => {
-    console.error(`[clone-route] background error:`, err);
+    log.scope("clone-route").error("background error", { error: err, runId });
     emitSSE(runId, "clone:error", { error: String(err) });
   });
 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/auth";
 import { checkRateLimit, getClientKey, getResetSeconds } from "@/lib/rate-limit";
+import { loginSchema, validateBody } from "@/lib/schemas";
 
-const AUTH_LIMIT = 10;        // 10 tentatives
-const AUTH_WINDOW_MS = 60_000; // par minute
+const AUTH_LIMIT = 10;
+const AUTH_WINDOW_MS = 60_000;
 
 export async function POST(request: NextRequest) {
   const key = getClientKey(request, "auth");
@@ -15,10 +16,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { username, password } = await request.json();
-  const ok = await login(username, password);
-  if (ok) {
-    return NextResponse.json({ ok: true });
-  }
+  const parsed = await validateBody(request, loginSchema);
+  if (!parsed.success) return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+
+  const ok = await login(parsed.data.username, parsed.data.password);
+  if (ok) return NextResponse.json({ ok: true });
   return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { log } from "@/lib/logger";
 
 import { CONFIG } from "@/lib/config";
 const BENCH_API = CONFIG.BENCH_API;
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(items);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[inspirations] error:", msg);
+    log.scope("inspirations").error("fetch failed", { error: err });
     return NextResponse.json({ error: msg, items: [] }, { status: 502 });
   }
 }

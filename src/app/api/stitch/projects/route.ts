@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { CONFIG } from "@/lib/config";
+import { log } from "@/lib/logger";
 const STITCH_API = CONFIG.STITCH_API;
 
 /**
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(filtered);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[stitch/projects] error:", msg);
+    log.scope("stitch/projects").error("fetch failed", { error: err });
     return NextResponse.json({ error: msg, items: [] }, { status: 502 });
   }
 }
