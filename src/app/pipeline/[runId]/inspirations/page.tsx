@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Globe, ArrowRight, ArrowLeft, Search } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
@@ -31,6 +31,7 @@ export default function InspirationsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // HYDRATATION au mount : r\u00e9cup\u00e9rer brief + inspirations d\u00e9j\u00e0 s\u00e9lectionn\u00e9es depuis run state
+  const setAudit = usePipelineStore((s) => s.setAudit);
   useEffect(() => {
     if (!runId) return;
     fetch(`/api/pipeline/run?id=${runId}`)
@@ -39,6 +40,25 @@ export default function InspirationsPage() {
         if (data?.brief && !brief) setBrief(data.brief);
         if (data?.inspirations?.length > 0 && selectedInspirations.length === 0) {
           setSelectedInspirations(data.inspirations);
+        }
+        // Hydrater audit pour les scrapes futurs
+        if (data?.brief && !audit) {
+          // Re-fetch audit depuis analyze API pour r\u00e9cup\u00e9rer knownCompetitors
+          fetch("/api/pipeline/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ runId }),
+          })
+            .then((r) => r.json())
+            .then((auditData) => {
+              if (auditData?.knownCompetitors) {
+                setAudit({
+                  knownCompetitors: auditData.knownCompetitors || [],
+                  suggestedKeywords: auditData.suggestedKeywords || [],
+                });
+              }
+            })
+            .catch(() => {});
         }
       })
       .catch(() => {});
@@ -59,8 +79,15 @@ export default function InspirationsPage() {
   }, [selectedInspirations, runId]);
 
   // Lancer le scraping concurrents automatiquement
+  // Re-trigger quand audit arrive (avec knownCompetitors)
+  const triggerKey = `${brief?.project.slug || ""}-${audit?.knownCompetitors?.length || 0}`;
+  const lastTriggerRef = useRef<string>("");
   useEffect(() => {
     if (!brief || loadingComp || competitors.length > 0) return;
+    // Si audit pas encore chargé, on peut quand même lancer (fallback sans KB)
+    // Mais si audit arrive après, on retry
+    if (lastTriggerRef.current === triggerKey) return;
+    lastTriggerRef.current = triggerKey;
     setLoadingComp(true);
     fetch("/api/pipeline/scrape-competitors", {
       method: "POST",
@@ -75,8 +102,13 @@ export default function InspirationsPage() {
       }),
     })
       .then((r) => r.json())
-      .then(setCompetitors)
-      .catch(() => {})
+      .then((data) => {
+        // Safe : accepte array direct ou {items:[]} ou ignore si erreur
+        if (Array.isArray(data)) setCompetitors(data);
+        else if (Array.isArray(data?.items)) setCompetitors(data.items);
+        else setCompetitors([]);
+      })
+      .catch(() => setCompetitors([]))
       .finally(() => setLoadingComp(false));
   }, [brief, runId, loadingComp, competitors.length]);
 

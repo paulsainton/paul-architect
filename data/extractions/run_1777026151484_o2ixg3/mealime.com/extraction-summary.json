@@ -1,0 +1,68 @@
+{
+  "url": "https://mealime.com",
+  "domain": "mealime.com",
+  "extractedAt": "2026-04-24T10:26:30.248Z",
+  "pageTitle": "Mealime - Meal Planning App for Healthy Eating - Get it for Free Today!",
+  "cssCustomPropertiesCount": 0,
+  "colorsFound": 11,
+  "fontFamilies": [
+    "\"Times New Roman\"",
+    "lato, sans-serif",
+    "chaparral-pro, serif",
+    "permanent-marker, sans-serif"
+  ],
+  "fontSizes": [
+    "16px",
+    "14px",
+    "96px",
+    "24px",
+    "20px",
+    "12px",
+    "60px"
+  ],
+  "borderRadii": [
+    "4px",
+    "30px",
+    "50%"
+  ],
+  "shadows": [
+    "rgba(255, 255, 255, 0.15) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.075) 0px 1px 1px 0px",
+    "rgba(0, 0, 0, 0.15) 0px 15px 20px -10px, rgba(0, 0, 0, 0.4) 0px 1px 4px -2px",
+    "rgba(0, 0, 0, 0.15) 0px 3px 4px 0px"
+  ],
+  "sectionsFound": 5,
+  "elementsFound": [
+    "body",
+    "header",
+    "nav",
+    "main",
+    "button",
+    "subheading",
+    "link"
+  ],
+  "imagesCount": 24,
+  "navLinksCount": 5,
+  "componentVariants": {
+    "buttons": 5,
+    "headingH2": 3,
+    "headingH3": 1,
+    "headingH4": 1,
+    "links": 7
+  },
+  "fontFaces": [
+    "chaparral-pro (400 normal)",
+    "chaparral-pro (400 italic)",
+    "chaparral-pro (700 normal)",
+    "chaparral-pro (700 italic)",
+    "lato (900 normal)",
+    "lato (500 normal)",
+    "permanent-marker (400 normal)"
+  ],
+  "mediaBreakpoints": [
+    "576px",
+    "768px",
+    "991.98px",
+    "992px",
+    "1200px"
+  ]
+}

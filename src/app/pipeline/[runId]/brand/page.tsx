@@ -29,14 +29,19 @@ export default function BrandPage() {
   // Si pas de brief en m\u00e9moire, recharger le run pour avoir brief.project.slug et relancer audit
   useEffect(() => {
     if (brief || !runId) return;
-    // Fetch run state
     fetch(`/api/pipeline/run?id=${runId}`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.brief) setBrief(data.brief);
       })
       .catch(() => {});
-  }, [brief, runId, setBrief]);
+    // Timeout redirect : si brief toujours absent apr\u00e8s 4s, rediriger vers /brief
+    const t = setTimeout(() => {
+      if (!brief) router.push(`/pipeline/${runId}/brief`);
+    }, 4_000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
 
   const [options, setOptions] = useState<BrandOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | "C" | null>(null);
