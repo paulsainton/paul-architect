@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
   setTunnelStatus(runId, 5, "active");
 
   const results = await runAnalysis(
-    { brief, brand, tokens, inspirationsCount },
+    {
+      brief, brand, tokens, inspirationsCount,
+      runId,
+      inspirations: run.inspirations,  // pour charger les extractions Clone par insp
+    },
     (name, role) => emitSSE(runId, "analysis:persona-start", { name, role }),
     (name, text) => emitSSE(runId, "analysis:persona-chunk", { name, text }),
     (name, summary) => emitSSE(runId, "analysis:persona-complete", { name, summary })

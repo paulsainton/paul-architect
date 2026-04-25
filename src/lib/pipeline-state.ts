@@ -1,6 +1,6 @@
 import { PipelineRun, TunnelId, TunnelState, SSEEvent, TUNNEL_LABELS } from "@/types/pipeline";
-import { writeFile, readFile, readdir, mkdir, rename, unlink } from "fs/promises";
-import { existsSync } from "fs";
+import { writeFile, readFile, readdir, mkdir, rename } from "fs/promises";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { CONFIG } from "./config";
 import { log } from "./logger";
@@ -21,7 +21,7 @@ let hydrated = false;
 
 // Cr\u00e9er le dir au module load
 if (!existsSync(RUNS_DIR)) {
-  try { require("fs").mkdirSync(RUNS_DIR, { recursive: true }); } catch { /* ignore */ }
+  try { mkdirSync(RUNS_DIR, { recursive: true }); } catch { /* ignore */ }
 }
 
 function defaultTunnels(): Record<TunnelId, TunnelState> {
@@ -157,7 +157,7 @@ export function getRun(runId: string): PipelineRun | undefined {
   const path = join(RUNS_DIR, `${runId}.json`);
   if (existsSync(path)) {
     try {
-      const raw = require("fs").readFileSync(path, "utf-8");
+      const raw = readFileSync(path, "utf-8");
       const loaded: PipelineRun = JSON.parse(raw);
       runs.set(runId, loaded);
       if (!eventLogs.has(runId)) eventLogs.set(runId, []);

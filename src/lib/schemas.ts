@@ -88,6 +88,11 @@ export const reviewSchema = z.object({
   totalMaquettes: z.number().int().min(1).max(50).optional(),
 });
 
+export const deploySchema = z.object({
+  runId: z.string().min(1).max(100),
+  commitMessage: z.string().min(1).max(500).optional(),
+});
+
 /**
  * Helper : valide un body JSON et retourne {success, data, error}
  */

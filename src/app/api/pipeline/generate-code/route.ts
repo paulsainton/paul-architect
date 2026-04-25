@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
 
   setTunnelStatus(runId, 6, "active");
 
-  // Injecter le projectPath + inspirations depuis le run state
+  // Injecter le projectPath + inspirations + runId depuis le run state
   const enrichedContext: CodeGenContext = {
     ...context,
     projectPath: (await resolveProjectPath(run.projectSlug)) || undefined,
     inspirations: run.inspirations,
+    runId,
   };
 
   const results = [];
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
         page,
         filesChanged: result.filesChanged,
         linesAdded: result.linesAdded,
+        modelUsed: result.modelUsed,
+        tokensIn: result.tokensIn,
+        tokensOut: result.tokensOut,
       });
       emitSSE(runId, "build:compiled", { page, success: true });
     } else {

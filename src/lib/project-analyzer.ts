@@ -46,7 +46,7 @@ export function scanProject(projectPath: string): ProjectScan {
 
   // 1. package.json
   const pkgRaw = safeRead(join(projectPath, "package.json"));
-  let stack = { framework: "", ui: "", state: "" };
+  const stack = { framework: "", ui: "", state: "" };
   if (pkgRaw) {
     try {
       const pkg = JSON.parse(pkgRaw);

@@ -37,6 +37,12 @@ export const CONFIG = {
 
   get STITCH_TIMEOUT_MS() { return readInt("STITCH_TIMEOUT_MS", 10000); },
   get CLONE_TIMEOUT_MS() { return readInt("CLONE_TIMEOUT_MS", 180000); },
+
+  // Anthropic SDK (T6 — code generation)
+  get ANTHROPIC_API_KEY() { return read("ANTHROPIC_API_KEY"); },
+  get ANTHROPIC_MODEL() { return read("ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929"); },
+  get ANTHROPIC_MAX_TOKENS() { return readInt("ANTHROPIC_MAX_TOKENS", 8192); },
+  get ANTHROPIC_TIMEOUT_MS() { return readInt("ANTHROPIC_TIMEOUT_MS", 90000); },
 };
 
 // Alias r\u00e9gression
