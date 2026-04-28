@@ -46,8 +46,11 @@ export function ProjectSelector({ onSelect, selected }: Props) {
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => r.json())
-      .then(setProjects)
-      .catch(() => {})
+      .then((data) => {
+        if (Array.isArray(data)) setProjects(data);
+        else console.error("[project-selector] unexpected response:", data);
+      })
+      .catch((err) => console.error("[project-selector] fetch failed:", err))
       .finally(() => setLoading(false));
   }, []);
 

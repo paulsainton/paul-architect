@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft, Zap } from "lucide-react";
+import { toast } from "sonner";
 import { ExtractionTimeline, type ExtractionStep } from "@/components/pipeline/extraction-timeline";
 import { TokenViewer } from "@/components/pipeline/token-viewer";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export default function ExtractionPage() {
       .then((data) => {
         if (data?.inspirations?.length > 0) setSelectedInspirations(data.inspirations);
       })
-      .catch(() => {});
+      .catch((err) => console.error("[extraction] hydrate run failed:", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId]);
 
@@ -105,7 +106,7 @@ export default function ExtractionPage() {
         .then((data) => {
           if (data?.mergedTokens) setMerged(data.mergedTokens);
         })
-        .catch(() => {});
+        .catch((err) => console.error("[extraction] fetch mergedTokens failed:", err));
     }
   }, [done, merged, runId]);
 
@@ -126,7 +127,7 @@ export default function ExtractionPage() {
           startedRef.current = true; // emp\u00eacher le relancement
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("[extraction] idempotence check failed:", err));
   }, [runId, done]);
 
   // Lancement fire-and-forget — retourne immédiatement, SSE pour progression
@@ -150,9 +151,16 @@ export default function ExtractionPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) setRunning(false);
+        if (data.error) {
+          setRunning(false);
+          toast.error("Clone Architect", { description: data.error });
+        }
       })
-      .catch(() => setRunning(false));
+      .catch((err) => {
+        setRunning(false);
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Clone Architect indisponible", { description: msg });
+      });
   }, [selectedInspirations, runId, running, done]);
 
   return (

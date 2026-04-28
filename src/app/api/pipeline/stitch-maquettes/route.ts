@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateMaquettes } from "@/lib/stitch-runner";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import type { Inspiration, Brief, Brand } from "@/types/pipeline";
+import { validateBody, stitchMaquettesSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
-  const { runId, inspirations, brief, brand } = (await request.json()) as {
+  const validation = await validateBody(request, stitchMaquettesSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, inspirations, brief, brand } = validation.data as {
     runId: string;
     inspirations: Inspiration[];
     brief: Brief;

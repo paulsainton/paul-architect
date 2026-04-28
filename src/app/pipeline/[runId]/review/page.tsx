@@ -53,16 +53,39 @@ export default function ReviewPage() {
     startedRef.current = true;
     setLoading(true);
 
+    // Compute real progression from store state instead of hardcoded values
+    const totalPagesReal = run?.brief?.detected?.pages?.length || 1;
+    const totalMaquettesReal = run?.inspirations?.length || 1;
+    // pagesValidated/maquettesApproved : best-effort from build SSE events
+    // (T6/T7 don't yet persist exact validation counts, fallback prudent : tout=valide si tunnels 6/7 completed)
+    const pagesValidatedReal = run?.tunnels?.[6]?.status === "completed" ? totalPagesReal : 0;
+    const maquettesApprovedReal = run?.tunnels?.[7]?.status === "completed" ? totalMaquettesReal : 0;
+
     fetch("/api/pipeline/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ runId, pagesValidated: 0, totalPages: 1, maquettesApproved: 0, totalMaquettes: 1 }),
+      body: JSON.stringify({
+        runId,
+        pagesValidated: pagesValidatedReal,
+        totalPages: totalPagesReal,
+        maquettesApproved: maquettesApprovedReal,
+        totalMaquettes: totalMaquettesReal,
+      }),
     })
       .then((r) => r.json())
-      .then((data) => setScore(data))
-      .catch(() => {})
+      .then((data) => {
+        if (data?.error) {
+          toast.error("QA review", { description: data.error });
+          return;
+        }
+        setScore(data);
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("QA review indisponible", { description: msg });
+      })
       .finally(() => setLoading(false));
-  }, [runId, loading, score]);
+  }, [runId, loading, score, run]);
 
   async function handleDeploy() {
     if (deploying || deployResult?.success) return;

@@ -2,47 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auditProject } from "@/lib/brief-auditor";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import { existsSync } from "fs";
-
-import { CONFIG } from "@/lib/config";
-const EMPIRE_API = CONFIG.EMPIRE_API;
-
-async function resolveProjectPath(slug: string): Promise<string | null> {
-  // 1. EmpireDONE : source de v\u00e9rit\u00e9
-  try {
-    const res = await fetch(`${EMPIRE_API}/api/projects`, { signal: AbortSignal.timeout(4_000) });
-    if (res.ok) {
-      const projects = await res.json();
-      const found = Array.isArray(projects) ? projects.find((p: { id: string; project_path?: string }) => p.id === slug) : null;
-      if (found?.project_path && existsSync(found.project_path)) return found.project_path;
-    }
-  } catch { /* fallback below */ }
-
-  // 2. Scan multi-chemins
-  const candidates = [
-    `/opt/${slug}`,
-    `/var/www/${slug}`,
-    `/var/www/app-${slug}`,
-    `/home/paul/projects/${slug}`,
-    `/opt/${slug}-refonte`,
-    `/opt/${slug}-dashboard`,
-    `/opt/app-${slug}`,
-  ];
-  for (const path of candidates) {
-    if (existsSync(path)) return path;
-  }
-
-  // 3. Alias historiques
-  const aliases: Record<string, string> = {
-    "ecom-dropship": "/opt/ecom-mygong",
-    matthias: "/opt/matthias-site",
-    dimension: "/opt/site-web-dimension-refonte",
-  };
-  if (aliases[slug] && existsSync(aliases[slug])) return aliases[slug];
-  return null;
-}
+import { resolveProjectPath } from "@/lib/project-resolver";
+import { validateBody, analyzeSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
-  const { runId, projectPath: explicitPath } = await request.json();
+  const validation = await validateBody(request, analyzeSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, projectPath: explicitPath } = validation.data;
 
   const run = getRun(runId);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });

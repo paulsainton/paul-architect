@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft, Brain } from "lucide-react";
+import { toast } from "sonner";
 import { PersonaPanel } from "@/components/pipeline/persona-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +72,7 @@ export default function AnalysisPage() {
         if (data?.brief && !brief) setBrief(data.brief);
         if (data?.brand && !brand) setBrand(data.brand);
       })
-      .catch(() => {});
+      .catch((err) => console.error("[analysis] hydrate run failed:", err));
   }, [brief, brand, runId, setBrief, setBrand]);
 
   useEffect(() => {
@@ -93,6 +94,10 @@ export default function AnalysisPage() {
     })
       .then((r) => r.json())
       .then((data) => {
+        if (!Array.isArray(data)) {
+          toast.error("Analyse échouée", { description: data?.error || "Réponse inattendue du serveur" });
+          return;
+        }
         setResults(data);
         setDone(true);
         // PERSIST : sauvegarder analyse dans run state pour T7/T6
@@ -100,9 +105,13 @@ export default function AnalysisPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ runId, analysis: data, skipTunnelAdvance: true }),
-        }).catch(() => {});
+        }).catch((e) => console.error("[analysis] persist failed:", e));
       })
-      .catch((err) => console.error("[analysis] error:", err))
+      .catch((err) => {
+        console.error("[analysis] error:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Erreur multi-persona", { description: msg });
+      })
       .finally(() => setLoading(false));
   }, [brief, brand, run, runId, selectedInspirations.length, loading, done]);
 

@@ -14,7 +14,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
-      // Envoyer l'état initial du run
+      // Envoyer l'état initial du run.
+      // Note : un heartbeat global (15s) est démarré par pipeline-state.initHeartbeat() — pas besoin d'un timer ici.
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "pipeline:state", data: run, timestamp: new Date().toISOString() })}\n\n`));
 
       const cleanup = addClient(runId, controller);

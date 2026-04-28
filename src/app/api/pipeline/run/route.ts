@@ -25,11 +25,23 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
+  const list = request.nextUrl.searchParams.get("list");
   if (id) {
     const run = getRun(id);
     return run ? NextResponse.json(run) : NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json(getAllRuns());
+  // Listing : opt-in via ?list=1, métadonnées seulement (pas de payload complet)
+  if (list === "1") {
+    const all = getAllRuns();
+    const summary = all.map((r) => ({
+      id: r.id,
+      projectSlug: r.projectSlug,
+      createdAt: r.createdAt,
+      currentTunnel: r.currentTunnel,
+    }));
+    return NextResponse.json(summary);
+  }
+  return NextResponse.json({ error: "id query param required (or ?list=1 for summary)" }, { status: 400 });
 }
 
 export async function PATCH(request: NextRequest) {

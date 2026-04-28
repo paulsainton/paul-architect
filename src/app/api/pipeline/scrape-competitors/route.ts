@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scrapeCompetitors } from "@/lib/competitor-scraper";
 import { getRun, emitSSE } from "@/lib/pipeline-state";
+import { validateBody, scrapeCompetitorsSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
-  const { runId, sector, type, projectName, knownCompetitors = [], keywords = [] } = await request.json();
+  const validation = await validateBody(request, scrapeCompetitorsSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, sector = "", type = "", projectName = "", knownCompetitors = [], keywords = [] } = validation.data;
 
   const run = getRun(runId);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });

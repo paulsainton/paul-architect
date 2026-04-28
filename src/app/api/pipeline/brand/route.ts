@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateBrandOptions } from "@/lib/brand-generator";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import type { MergedTokens, Brief } from "@/types/pipeline";
+import { validateBody, brandSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
-  const { runId, tokens, brief } = (await request.json()) as {
+  const validation = await validateBody(request, brandSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, tokens, brief } = validation.data as {
     runId: string;
     tokens: MergedTokens;
     brief: Brief;

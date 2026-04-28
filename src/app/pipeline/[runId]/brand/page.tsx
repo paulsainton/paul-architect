@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft, Palette, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 import { BrandOptionCard } from "@/components/pipeline/brand-option";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,9 @@ export default function BrandPage() {
   const events = usePipelineStore((s) => s.events);
 
   // Si pas de brief en m\u00e9moire, recharger le run pour avoir brief.project.slug et relancer audit
+  // Ref-based timeout pour \u00e9viter le closure stale.
+  const briefRef = useRef(brief);
+  briefRef.current = brief;
   useEffect(() => {
     if (brief || !runId) return;
     fetch(`/api/pipeline/run?id=${runId}`)
@@ -34,10 +38,10 @@ export default function BrandPage() {
       .then((data) => {
         if (data?.brief) setBrief(data.brief);
       })
-      .catch(() => {});
+      .catch((err) => console.error("[brand] hydrate brief failed:", err));
     // Timeout redirect : si brief toujours absent apr\u00e8s 4s, rediriger vers /brief
     const t = setTimeout(() => {
-      if (!brief) router.push(`/pipeline/${runId}/brief`);
+      if (!briefRef.current) router.push(`/pipeline/${runId}/brief`);
     }, 4_000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,9 +113,18 @@ export default function BrandPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) setOptions(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setOptions(data);
+        } else if (data?.error) {
+          toast.error("Génération palette", { description: data.error });
+        } else {
+          toast.error("Aucune palette générée", { description: "Vérifie Stitch SDK ou retente plus tard." });
+        }
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Erreur génération brand", { description: msg });
+      })
       .finally(() => setLoading(false));
   }, [brief, run, runId, loading, options.length]);
 
@@ -131,14 +144,25 @@ export default function BrandPage() {
       validatedAt: new Date().toISOString(),
     };
 
-    await fetch("/api/pipeline/run", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ runId, brand }),
-    });
-
-    setBrand(brand);
-    router.push(`/pipeline/${runId}/analysis`);
+    try {
+      const res = await fetch("/api/pipeline/run", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId, brand }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error("Validation brand impossible", { description: err?.error || `HTTP ${res.status}` });
+        setSubmitting(false);
+        return;
+      }
+      setBrand(brand);
+      router.push(`/pipeline/${runId}/analysis`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Erreur réseau validation brand", { description: msg });
+      setSubmitting(false);
+    }
   }
 
   return (

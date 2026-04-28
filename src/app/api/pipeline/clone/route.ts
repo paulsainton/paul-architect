@@ -4,6 +4,7 @@ import { mergeTokens } from "@/lib/token-merger";
 import { getRun, emitSSE, setTunnelStatus, updateRun } from "@/lib/pipeline-state";
 import type { ExtractionResult } from "@/types/pipeline";
 import { log } from "@/lib/logger";
+import { validateBody, cloneSchema } from "@/lib/schemas";
 
 export const maxDuration = 600; // 10 min max pour cette route (Next.js 16)
 
@@ -69,13 +70,14 @@ async function runClonesBackground(runId: string, urls: string[]) {
 }
 
 export async function POST(request: NextRequest) {
-  const { runId, urls } = await request.json();
+  const validation = await validateBody(request, cloneSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, urls } = validation.data;
 
   const run = getRun(runId);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
-  if (!urls || !Array.isArray(urls) || urls.length === 0) {
-    return NextResponse.json({ error: "urls required" }, { status: 400 });
-  }
 
   setTunnelStatus(runId, 3, "active");
 

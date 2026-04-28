@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runQA } from "@/lib/qa-runner";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
+import { validateBody, reviewSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
-  const { runId, pagesValidated, totalPages, maquettesApproved, totalMaquettes } = await request.json();
+  const validation = await validateBody(request, reviewSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const {
+    runId,
+    pagesValidated = 0,
+    totalPages = 1,
+    maquettesApproved = 0,
+    totalMaquettes = 1,
+  } = validation.data;
 
   const run = getRun(runId);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });

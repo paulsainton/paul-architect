@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft, Code } from "lucide-react";
+import { toast } from "sonner";
 import { BuildTimeline, type PageBuildState } from "@/components/pipeline/build-timeline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,8 +80,23 @@ export default function BuildPage() {
       }),
     })
       .then((r) => r.json())
-      .then(() => setDone(true))
-      .catch(() => {})
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setDone(true);
+          const failed = data.filter((d) => !d?.compiled);
+          if (failed.length > 0) {
+            toast.warning(`${failed.length} page(s) en erreur`, {
+              description: failed.map((f) => f.page).join(", "),
+            });
+          }
+        } else if (data?.error) {
+          toast.error("Génération de code", { description: data.error });
+        }
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Code generator indisponible", { description: msg });
+      })
       .finally(() => setLoading(false));
   }, [brief, brand, run, runId, loading, done]);
 

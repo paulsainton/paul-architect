@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowRight, ArrowLeft, Image as ImageIcon, ExternalLink, RefreshCw, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -58,7 +59,7 @@ export default function MaquettesPage() {
           setSelectedInspirations(data.inspirations);
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("[maquettes] hydrate run failed:", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId]);
 

@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { runAnalysis } from "@/lib/ux-analysis";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
 import type { Brief, Brand, MergedTokens } from "@/types/pipeline";
+import { validateBody, analysisSchema } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
-  const { runId, brief, brand, tokens, inspirationsCount } = (await request.json()) as {
+  const validation = await validateBody(request, analysisSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, brief, brand, tokens, inspirationsCount = 0 } = validation.data as {
     runId: string;
     brief: Brief;
     brand: Brand;
     tokens: MergedTokens;
-    inspirationsCount: number;
+    inspirationsCount?: number;
   };
 
   const run = getRun(runId);

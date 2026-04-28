@@ -22,8 +22,12 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
         .then((r) => r.json())
         .then((data) => {
           if (data && !data.error) setRun(data);
+          else if (data?.error) console.warn("[pipeline-layout] run not loaded:", data.error);
         })
-        .catch(() => { loadedRef.current = null; });
+        .catch((err) => {
+          console.error("[pipeline-layout] hydrate failed:", err);
+          loadedRef.current = null;
+        });
     }
   }, [runId, run, setRun]);
 

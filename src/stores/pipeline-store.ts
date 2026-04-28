@@ -48,10 +48,25 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
       try {
         const event: SSEEvent = JSON.parse(e.data);
         get().addEvent(event);
-      } catch { /* ignore parse errors */ }
+      } catch (err) {
+        console.warn("[SSE] parse error:", err);
+      }
     };
     es.onopen = () => set({ isConnected: true });
-    es.onerror = () => set({ isConnected: false });
+    es.onerror = () => {
+      // EventSource a un auto-reconnect natif. On flag l'état déconnecté pour l'UI.
+      // Si readyState=CLOSED (2), il faut relancer manuellement (mais pas en boucle infinie).
+      set({ isConnected: false });
+      if (es.readyState === EventSource.CLOSED) {
+        console.warn("[SSE] connection closed, will reopen in 3s");
+        setTimeout(() => {
+          if (get().eventSource === es) {
+            // Toujours sur cet ES → on relance
+            get().startSSE(runId);
+          }
+        }, 3_000);
+      }
+    };
     set({ eventSource: es });
   },
 

@@ -58,10 +58,10 @@ export default function InspirationsPage() {
                 });
               }
             })
-            .catch(() => {});
+            .catch((err) => console.error("[inspirations] re-audit failed:", err));
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("[inspirations] hydrate run failed:", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId]);
 
@@ -73,7 +73,7 @@ export default function InspirationsPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ runId, inspirations: selectedInspirations, skipTunnelAdvance: true }),
-      }).catch(() => {});
+      }).catch((err) => console.error("[inspirations] auto-save failed:", err));
     }, 500);
     return () => clearTimeout(t);
   }, [selectedInspirations, runId]);

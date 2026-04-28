@@ -1,35 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generatePageCode, type CodeGenContext } from "@/lib/code-generator";
 import { getRun, emitSSE, setTunnelStatus } from "@/lib/pipeline-state";
-import { existsSync } from "fs";
-
-import { CONFIG } from "@/lib/config";
-const EMPIRE_API = CONFIG.EMPIRE_API;
-
-async function resolveProjectPath(slug: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${EMPIRE_API}/api/projects`, { signal: AbortSignal.timeout(4_000) });
-    if (res.ok) {
-      const projects = await res.json();
-      const found = Array.isArray(projects) ? projects.find((p: { id: string; project_path?: string }) => p.id === slug) : null;
-      if (found?.project_path && existsSync(found.project_path)) return found.project_path;
-    }
-  } catch { /* fallback */ }
-  const candidates = [
-    `/opt/${slug}`, `/var/www/${slug}`, `/var/www/app-${slug}`,
-    `/home/paul/projects/${slug}`, `/opt/${slug}-refonte`, `/opt/app-${slug}`,
-  ];
-  for (const path of candidates) if (existsSync(path)) return path;
-  const aliases: Record<string, string> = {
-    "ecom-dropship": "/opt/ecom-mygong", matthias: "/opt/matthias-site",
-    dimension: "/opt/site-web-dimension-refonte",
-  };
-  if (aliases[slug] && existsSync(aliases[slug])) return aliases[slug];
-  return null;
-}
+import { validateBody, generateCodeSchema } from "@/lib/schemas";
+import { resolveProjectPath } from "@/lib/project-resolver";
 
 export async function POST(request: NextRequest) {
-  const { runId, context } = (await request.json()) as {
+  const validation = await validateBody(request, generateCodeSchema);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+  const { runId, context } = validation.data as {
     runId: string;
     context: CodeGenContext;
   };
