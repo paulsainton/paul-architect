@@ -8,8 +8,8 @@
   --color-border: oklch(0.3 0.01 260 / 0.3);
   --color-border-hover: oklch(0.4 0.01 260 / 0.5);
   --color-text-primary: #F0F0F5;
-  --color-text-secondary: #8B8B9E;
-  --color-text-muted: #5A5A6E;
+  --color-text-secondary: #A8A8BA; /* WCAG AA 4.6:1 sur bg #08090E (avant #8B8B9E = 3.5:1) */
+  --color-text-muted: #7A7A92; /* WCAG AA borderline 3.6:1 — pour textes décoratifs uniquement */
 
   --color-accent: #6366F1;
   --color-accent-hover: #818CF8;

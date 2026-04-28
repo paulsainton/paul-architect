@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Rocket, Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { ProjectSelector, type Project } from "@/components/pipeline/project-selector";
 import { Button } from "@/components/ui/button";
 import { usePipelineStore } from "@/stores/pipeline-store";
@@ -14,7 +15,7 @@ export default function NewPipelinePage() {
   const [loading, setLoading] = useState(false);
 
   async function handleLaunch() {
-    if (!selected) return;
+    if (!selected || loading) return;
     setLoading(true);
     try {
       const res = await fetch("/api/pipeline/run", {
@@ -22,10 +23,18 @@ export default function NewPipelinePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectSlug: selected.slug }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error("Création pipeline impossible", { description: err?.error || `HTTP ${res.status}` });
+        return;
+      }
       const run = await res.json();
       setRun(run);
       router.push(`/pipeline/${run.id}/brief`);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Erreur réseau", { description: msg });
+    } finally {
       setLoading(false);
     }
   }

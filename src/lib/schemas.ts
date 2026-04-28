@@ -9,18 +9,14 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
-// Slugs réservés interdits comme cible (auto-écrasement / système)
-const RESERVED_SLUG_SET = new Set([
-  "paul-architect", "orchestrator", "orchestrator-mcp", "orchestrator-dashboard",
-  "empiredone", "nginx", "root", "etc", "bin", "usr", "var", "lib", "boot", "sys", "proc", "tmp",
-]);
+import { RESERVED_SLUGS } from "./project-resolver";
 
 export const createRunSchema = z.object({
   projectSlug: z.string()
     .min(1)
     .max(100)
     .regex(/^[a-zA-Z0-9_-]+$/, "Slug invalide")
-    .refine((s) => !RESERVED_SLUG_SET.has(s.toLowerCase().trim()), {
+    .refine((s) => !RESERVED_SLUGS.has(s.toLowerCase().trim()), {
       message: "Slug réservé (paul-architect, orchestrator, root, etc.) interdit",
     }),
 });

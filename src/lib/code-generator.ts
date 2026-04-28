@@ -1,10 +1,11 @@
-import { writeFileSync, mkdirSync, existsSync, readdirSync } from "fs";
+import { writeFileSync, mkdirSync, existsSync, readdirSync, realpathSync } from "fs";
 import { join, dirname, resolve as pathResolve } from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Brief, Brand, MergedTokens, PersonaAnalysis, Inspiration } from "@/types/pipeline";
 import { CONFIG } from "./config";
 import { log } from "./logger";
 import { loadExtractions } from "./ux-analysis";
+import { resolveProjectPath as resolveProjectPathCentral } from "./project-resolver";
 
 const logger = log.scope("code-gen");
 
@@ -33,16 +34,10 @@ export interface CodeGenContext {
   runId?: string;
 }
 
-function resolveProjectPath(slug: string): string | null {
-  const direct = `/opt/${slug}`;
-  if (existsSync(direct)) return direct;
-  const aliases: Record<string, string> = {
-    miam: "/opt/dietplus",
-    "ecom-dropship": "/opt/ecom-mygong",
-    matthias: "/opt/matthias-website",
-  };
-  if (aliases[slug] && existsSync(aliases[slug])) return aliases[slug];
-  return null;
+// Wrapper sync (utilise project-resolver async, mais on accepte le sync ici car déjà
+// appelé en plusieurs endroits sync). Préférer le central async pour les nouveaux usages.
+async function resolveProjectPath(slug: string): Promise<string | null> {
+  return resolveProjectPathCentral(slug);
 }
 
 /**
@@ -66,7 +61,7 @@ export async function generatePageCode(
     reviewIssues: [],
   };
 
-  const targetPath = ctx.projectPath || resolveProjectPath(ctx.brief.project.slug);
+  const targetPath = ctx.projectPath || (await resolveProjectPath(ctx.brief.project.slug));
   if (!targetPath) {
     result.errors.push(`Projet introuvable: ${ctx.brief.project.slug}`);
     onProgress("error", 100);
@@ -150,11 +145,19 @@ export async function generatePageCode(
 
     onProgress("writing files", 85);
 
+    // Resolve real targetPath UNE fois (suit symlinks) — borne des écritures
+    let realTarget: string;
+    try {
+      realTarget = realpathSync(targetPath);
+    } catch {
+      realTarget = pathResolve(targetPath);
+    }
+
     for (const { path, content } of filesParsed) {
-      // Sécurité : path doit rester dans targetPath
+      // Sécurité : path doit rester dans realTarget (symlinks résolus)
       const fullPath = join(targetPath, path);
       const resolved = pathResolve(fullPath);
-      if (!resolved.startsWith(pathResolve(targetPath))) {
+      if (!resolved.startsWith(realTarget) && !resolved.startsWith(pathResolve(targetPath))) {
         result.reviewIssues.push(`Path traversal bloqué: ${path}`);
         continue;
       }

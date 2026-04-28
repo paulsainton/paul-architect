@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, CheckCircle, ArrowLeft, Layers } from "lucide-react";
+import { toast } from "sonner";
 import { BriefForm } from "@/components/pipeline/brief-form";
 import { usePipelineStore } from "@/stores/pipeline-store";
 import { Badge } from "@/components/ui/badge";
@@ -80,16 +81,25 @@ export default function BriefPage() {
   }, [events]);
 
   async function handleSubmit(brief: Brief) {
+    if (submitting) return;
     setSubmitting(true);
     try {
-      await fetch("/api/pipeline/run", {
+      const res = await fetch("/api/pipeline/run", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ runId, brief }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error("Enregistrement brief impossible", { description: err?.error || `HTTP ${res.status}` });
+        return;
+      }
       setBrief(brief);
       router.push(`/pipeline/${runId}/inspirations`);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Erreur réseau brief", { description: msg });
+    } finally {
       setSubmitting(false);
     }
   }

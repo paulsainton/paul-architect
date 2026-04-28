@@ -27,12 +27,13 @@ export async function POST(request: NextRequest) {
     runId,
   };
 
-  const results = [];
+  // Génération en parallèle bornée (4 simultanées max) — 10 pages sequentiel = 15min,
+  // batch 4 = ~4min sur Claude Sonnet à 90s/page, sans saturer les rate limits Anthropic.
+  const CONCURRENCY = 4;
+  const results: Array<Awaited<ReturnType<typeof generatePageCode>>> = [];
 
-  for (let i = 0; i < enrichedContext.pages.length; i++) {
-    const page = enrichedContext.pages[i];
-    emitSSE(runId, "build:page-start", { page, index: i, total: enrichedContext.pages.length });
-
+  async function buildOne(page: string, index: number) {
+    emitSSE(runId, "build:page-start", { page, index, total: enrichedContext.pages.length });
     const result = await generatePageCode(page, enrichedContext, (status, percent) => {
       emitSSE(runId, "build:generating", { page, status, percent });
     });
@@ -50,17 +51,20 @@ export async function POST(request: NextRequest) {
     } else {
       emitSSE(runId, "build:compiled", { page, success: false, errors: result.errors });
     }
-
     if (result.reviewScore !== undefined) {
-      emitSSE(runId, "build:review", {
-        page,
-        score: result.reviewScore,
-        issues: result.reviewIssues,
-      });
+      emitSSE(runId, "build:review", { page, score: result.reviewScore, issues: result.reviewIssues });
     }
-
     emitSSE(runId, "build:waiting-validation", { page });
-    results.push(result);
+    return result;
+  }
+
+  // Exécution batchée
+  for (let i = 0; i < enrichedContext.pages.length; i += CONCURRENCY) {
+    const batch = enrichedContext.pages.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map((page, j) => buildOne(page, i + j))
+    );
+    results.push(...batchResults);
   }
 
   setTunnelStatus(runId, 6, "completed");

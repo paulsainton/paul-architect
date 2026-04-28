@@ -20,8 +20,10 @@ const ALIASES: Record<string, string> = {
 /**
  * Slugs réservés : impossible de les utiliser comme cible deploy/clone.
  * Sécurité : empêche d'auto-écraser paul-architect ou les services système.
+ *
+ * SOURCE DE VÉRITÉ — importé par schemas.ts (pour validation Zod) ET routes (pour vérif post-load).
  */
-const RESERVED_SLUGS = new Set([
+export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "paul-architect",
   "orchestrator",
   "orchestrator-mcp",
@@ -44,9 +46,28 @@ export function isReservedSlug(slug: string): boolean {
   return RESERVED_SLUGS.has(slug.toLowerCase().trim());
 }
 
+// Cache mémoire EmpireDONE — 5 min TTL, partagé entre toutes les requêtes
+interface EmpireProject { id: string; project_path?: string }
+let empireCache: { data: EmpireProject[]; expiresAt: number } | null = null;
+const EMPIRE_CACHE_TTL_MS = 5 * 60_000;
+
+async function getEmpireProjects(): Promise<EmpireProject[]> {
+  if (empireCache && Date.now() < empireCache.expiresAt) return empireCache.data;
+  try {
+    const res = await fetch(`${CONFIG.EMPIRE_API}/api/projects`, { signal: AbortSignal.timeout(4_000) });
+    if (!res.ok) return empireCache?.data || [];
+    const projects = await res.json();
+    if (Array.isArray(projects)) {
+      empireCache = { data: projects, expiresAt: Date.now() + EMPIRE_CACHE_TTL_MS };
+      return projects;
+    }
+  } catch { /* keep stale cache if available */ }
+  return empireCache?.data || [];
+}
+
 /**
  * Résout le chemin physique d'un projet.
- * 1. EmpireDONE (source de vérité)
+ * 1. EmpireDONE (source de vérité, cache 5 min)
  * 2. Convention `/opt/<slug>`, `/var/www/<slug>`, etc.
  * 3. Aliases historiques
  */
@@ -56,16 +77,11 @@ export async function resolveProjectPath(slug: string): Promise<string | null> {
     return null;
   }
 
-  // 1. EmpireDONE
+  // 1. EmpireDONE (cached)
   try {
-    const res = await fetch(`${CONFIG.EMPIRE_API}/api/projects`, { signal: AbortSignal.timeout(4_000) });
-    if (res.ok) {
-      const projects = await res.json();
-      const found = Array.isArray(projects)
-        ? projects.find((p: { id: string; project_path?: string }) => p.id === slug)
-        : null;
-      if (found?.project_path && existsSync(found.project_path)) return found.project_path;
-    }
+    const projects = await getEmpireProjects();
+    const found = projects.find((p) => p.id === slug);
+    if (found?.project_path && existsSync(found.project_path)) return found.project_path;
   } catch { /* fallback */ }
 
   // 2. Conventions filesystem

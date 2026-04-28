@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Globe, ArrowRight, ArrowLeft, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,13 +118,26 @@ export default function InspirationsPage() {
   const total = selectedInspirations.length;
 
   async function handleValidate() {
+    if (submitting) return;
     setSubmitting(true);
-    await fetch("/api/pipeline/run", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ runId, inspirations: selectedInspirations }),
-    });
-    router.push(`/pipeline/${runId}/extraction`);
+    try {
+      const res = await fetch("/api/pipeline/run", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId, inspirations: selectedInspirations }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error("Validation inspirations impossible", { description: err?.error || `HTTP ${res.status}` });
+        return;
+      }
+      router.push(`/pipeline/${runId}/extraction`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Erreur réseau", { description: msg });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

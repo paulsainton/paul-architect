@@ -1,7 +1,19 @@
 import type { Brief, Brand, MergedTokens, PersonaAnalysis, Inspiration } from "@/types/pipeline";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 import { CONFIG } from "./config";
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB — borne anti-OOM
+
+function safeRead(path: string, maxBytes = MAX_FILE_BYTES): string | null {
+  try {
+    const stat = statSync(path);
+    if (stat.size > maxBytes) return null;
+    return readFileSync(path, "utf-8");
+  } catch {
+    return null;
+  }
+}
 
 interface ExtractionData {
   domain: string;
@@ -44,15 +56,19 @@ export function loadExtractions(runId: string, inspirations: Inspiration[]): Ext
       if (!existsSync(base)) continue;
       try {
         const designPath = join(base, "DESIGN.md");
-        if (existsSync(designPath)) data.designMd = readFileSync(designPath, "utf-8").slice(0, 1500);
+        const designContent = safeRead(designPath);
+        if (designContent) data.designMd = designContent.slice(0, 1500);
 
         const layoutPath = join(base, "layout-analysis.md");
-        if (existsSync(layoutPath)) data.layout = readFileSync(layoutPath, "utf-8").slice(0, 1000);
+        const layoutContent = safeRead(layoutPath);
+        if (layoutContent) data.layout = layoutContent.slice(0, 1000);
 
         const tokensPath = join(base, "tokens.json");
         if (existsSync(tokensPath)) {
           try {
-            const raw = JSON.parse(readFileSync(tokensPath, "utf-8"));
+            const tokensRaw = safeRead(tokensPath);
+            if (!tokensRaw) continue;
+            const raw = JSON.parse(tokensRaw);
             const colors: string[] = [];
             const flatten = (o: unknown): void => {
               if (typeof o === "string" && /^(#|rgb)/.test(o)) colors.push(o);

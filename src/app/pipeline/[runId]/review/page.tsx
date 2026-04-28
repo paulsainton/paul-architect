@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Loader2, Rocket, ArrowLeft, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { ScoreCard } from "@/components/pipeline/score-card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ const STEP_LABELS: Record<string, string> = {
 
 export default function ReviewPage() {
   const params = useParams();
+  const router = useRouter();
   const runId = params.runId as string;
   const run = usePipelineStore((s) => s.run);
 
@@ -130,7 +131,7 @@ export default function ReviewPage() {
           <h2 className="text-lg font-semibold">QA &amp; Deploy</h2>
           <Badge variant="accent">T8</Badge>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="w-3.5 h-3.5" /> Retour
         </Button>
       </div>
@@ -219,7 +220,7 @@ export default function ReviewPage() {
             </div>
           ) : (
             <div className="mt-6 flex items-center gap-3">
-              <Button variant="secondary" onClick={() => window.history.back()}>
+              <Button variant="secondary" onClick={() => router.back()}>
                 <ArrowLeft className="w-4 h-4" /> Retour au Tunnel 6
               </Button>
             </div>

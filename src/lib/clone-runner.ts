@@ -40,16 +40,23 @@ export async function runCloneArchitect(
   return new Promise((resolve) => {
     onProgress("launching playwright", 5);
 
+    // Whitelist d'env pour le child process — N'inclut PAS ANTHROPIC_API_KEY ni PA_PASS_HASH.
+    // Évite de fuiter les secrets paul-architect au sous-process clone-architect.
+    const childEnv: NodeJS.ProcessEnv = {
+      NODE_ENV: "production",
+      PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+      // Browsers Playwright de paul (root n'a pas chromium-1217)
+      PLAYWRIGHT_BROWSERS_PATH: "/home/paul/.cache/ms-playwright",
+      // HOME pour que npm trouve .npmrc et cache
+      HOME: "/home/paul",
+      // Locale pour éviter ReferenceError node sans LANG
+      LANG: process.env.LANG || "en_US.UTF-8",
+      LC_ALL: process.env.LC_ALL || "en_US.UTF-8",
+    };
+
     const proc = spawn("npm", ["run", "clone", "--", url], {
       cwd: CLONE_DIR,
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        // Critique : utiliser les browsers de paul (root n'a pas chromium-1217)
-        PLAYWRIGHT_BROWSERS_PATH: "/home/paul/.cache/ms-playwright",
-        // HOME pour que npm trouve .npmrc et cache
-        HOME: "/home/paul",
-      },
+      env: childEnv,
       timeout: 120_000,
     });
 

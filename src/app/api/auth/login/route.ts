@@ -3,8 +3,9 @@ import { login } from "@/lib/auth";
 import { checkRateLimit, getClientKey, getResetSeconds } from "@/lib/rate-limit";
 import { loginSchema, validateBody } from "@/lib/schemas";
 
-const AUTH_LIMIT = 10;
-const AUTH_WINDOW_MS = 60_000;
+// Brute-force protection : 8 tentatives par 15 min (sliding)
+const AUTH_LIMIT = 8;
+const AUTH_WINDOW_MS = 15 * 60_000;
 
 export async function POST(request: NextRequest) {
   const key = getClientKey(request, "auth");

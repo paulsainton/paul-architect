@@ -51,16 +51,18 @@ export function InspirationDetailModal({ open, onClose, item }: Props) {
                 <button
                   type="button"
                   onClick={() => setIdx((i) => (i - 1 + images.length) % images.length)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90"
+                  aria-label="Image précédente"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-accent"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setIdx((i) => (i + 1) % images.length)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90"
+                  aria-label="Image suivante"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-accent"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-5 h-5" aria-hidden="true" />
                 </button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/60 rounded-full px-3 py-1.5">
                   {images.map((_, i) => (

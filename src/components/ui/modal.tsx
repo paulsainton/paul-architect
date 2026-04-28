@@ -30,8 +30,13 @@ export function Modal({ open, onClose, title, children, className = "" }: ModalP
       {title && (
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-bg-card text-text-muted">
-            <X className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="p-1 rounded-lg hover:bg-bg-card text-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
